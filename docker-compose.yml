@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  config-server:
+    build: ./infrastructure/config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./infrastructure/config-repo:/app/config-repo
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      CONFIG_SERVER_FILE: file:/app/config-repo
+      EUREKA_SERVER: http://eureka-server:8761/eureka/
+    networks:
+      - bidly-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  eureka-server:
+    build: ./infrastructure/eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+    networks:
+      - bidly-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  api-gateway:
+    build: ./infrastructure/api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_SERVICE: http://eureka-server:8761/eureka/
+    networks:
+      - bidly-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  bidly-network:
+    driver: bridge
