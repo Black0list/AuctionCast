@@ -3,14 +3,15 @@ package com.bidly.userservice.service;
 import com.bidly.common.dto.ApiResponse;
 import com.bidly.common.exception.ResourceExistsException;
 import com.bidly.common.exception.ResourceNotFoundException;
-import com.bidly.userservice.dto.AuthRequest;
-import com.bidly.userservice.dto.LoginResponseDTO;
-import com.bidly.userservice.dto.RegisterUserRequestDTO;
+import com.bidly.userservice.dto.*;
 import com.bidly.userservice.entity.User;
+import com.bidly.userservice.mapper.UserMapper;
 import com.bidly.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -19,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -48,13 +50,7 @@ public class AuthService {
 
         String keycloakId = keycloakAdminService.registerUser(request);
 
-        User user = User.builder()
-                .keycloakId(keycloakId)
-                .email(request.getEmail())
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .country("US")
-                .build();
+        User user = UserMapper.toEntity(request);
 
         userRepository.save(user);
 
@@ -62,7 +58,6 @@ public class AuthService {
     }
 
     public ApiResponse<LoginResponseDTO> login(AuthRequest request) {
-        // 1. Prepare Request to Keycloak Token Endpoint
         String tokenUrl = String.format("%s/realms/%s/protocol/openid-connect/token", keycloakUrl, realm);
 
         HttpHeaders headers = new HttpHeaders();
@@ -98,11 +93,23 @@ public class AuthService {
         }
     }
 
-    public ApiResponse<List<User>> listUsers() {
-        List<User> users = userRepository.findAll();
-        if (users.isEmpty()) {
-            throw new ResourceNotFoundException("No users found");
-        }
-        return ApiResponse.success(users, "Users retrieved successfully");
+    public ApiResponse<UserDTO> getProfile(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return ApiResponse.success(UserMapper.toDto(user), "User profile retrieved successfully");
+    }
+
+    public ApiResponse<UserDTO> updateUser(Jwt jwt, UserUpdateDTO updateDto) {
+        String keycloakId = jwt.getSubject();
+
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        user = UserMapper.patchEntity(user, updateDto);
+
+        userRepository.save(user);
+
+        return ApiResponse.success(UserMapper.toDto(user),"User updated successfully");
     }
 }
