@@ -8,7 +8,28 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/services/Ai/pom.xml" />
+        <option value="$PROJECT_DIR$/infrastructure/api-gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/infrastructure/config-server/pom.xml" />
+        <option value="$PROJECT_DIR$/infrastructure/eureka-server/pom.xml" />
+        <option value="$PROJECT_DIR$/shared/common-lib/pom.xml" />
+        <option value="$PROJECT_DIR$/shared/event-lib/pom.xml" />
+        <option value="$PROJECT_DIR$/shared/security-lib/pom.xml" />
+        <option value="$PROJECT_DIR$/services/user-service/pom.xml" />
       </list>
+    </option>
+    <option name="ignoredFiles">
+      <set>
+        <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/services/Ai/pom.xml" />
+        <option value="$PROJECT_DIR$/services/admin-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/auction-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/bidding-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/catalog-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/notification-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/shipping-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/wallet-service/pom.xml" />
+      </set>
     </option>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_17" default="true" project-jdk-name="17" project-jdk-type="JavaSDK">
