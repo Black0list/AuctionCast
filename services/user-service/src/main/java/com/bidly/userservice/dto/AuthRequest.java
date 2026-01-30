@@ -1,6 +1,6 @@
 package com.bidly.userservice.dto;
 
-import jakarta.validation.Email;
+import jakarta.validation.constraints.Email;
 import lombok.Data;
 
 @Data
