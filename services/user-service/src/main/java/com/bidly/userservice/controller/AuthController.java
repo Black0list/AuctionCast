@@ -5,9 +5,12 @@ import com.bidly.userservice.dto.*;
 import com.bidly.userservice.entity.User;
 import com.bidly.userservice.service.AuthService;
 import com.bidly.userservice.service.UserSyncService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Validated
 public class AuthController {
 
     private final AuthService authService;
@@ -36,8 +40,8 @@ public class AuthController {
         return authService.getProfile(user.getId());
     }
 
-    @PatchMapping("/me")
-    public ApiResponse<UserDTO> getProfile(@AuthenticationPrincipal Jwt jwt, @RequestBody UserUpdateDTO updateDto) {
+    @PatchMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<UserDTO> updateProfile(@AuthenticationPrincipal Jwt jwt, @Valid @ModelAttribute UserUpdateDTO updateDto) {
         ApiResponse<UserDTO> response = authService.updateUser(jwt, updateDto);
         userSyncService.sync(jwt);
         return response;

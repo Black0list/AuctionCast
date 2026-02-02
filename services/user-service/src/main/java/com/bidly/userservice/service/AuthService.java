@@ -20,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -29,6 +30,7 @@ public class AuthService {
     private final KeycloakAdminService keycloakAdminService;
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
+    private final FileStorageService fileStorageService;
 
     @Value("${keycloak.server-url}")
     private String keycloakUrl;
@@ -106,7 +108,16 @@ public class AuthService {
         User user = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        user = UserMapper.patchEntity(user, updateDto);
+        String imageUrl = Optional.ofNullable(updateDto.getPhoto())
+                .filter(f -> !f.isEmpty())
+                .map(f -> fileStorageService.saveFile(f, "users-photos/"))
+                .orElse(user.getPhoto());
+
+        if (updateDto.getPhoto() != null && !updateDto.getPhoto().isEmpty()) {
+            fileStorageService.deleteFile(user.getPhoto());
+        }
+
+        UserMapper.patchEntity(user, updateDto, imageUrl);
 
         userRepository.save(user);
 

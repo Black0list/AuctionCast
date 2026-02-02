@@ -38,15 +38,15 @@ public class UserMapper {
                 .build();
     }
 
-    public static User patchEntity(User user, UserUpdateDTO updateDto) {
+    public static User patchEntity(User user, UserUpdateDTO updateDto, String imageUrl) {
         if (updateDto.getFirstName() != null) {
             user.setFirstName(updateDto.getFirstName());
         }
         if (updateDto.getLastName() != null) {
             user.setLastName(updateDto.getLastName());
         }
-        if (updateDto.getPhoto() != null) {
-            user.setPhoto(updateDto.getPhoto());
+        if (imageUrl != null) {
+            user.setPhoto(imageUrl);
         }
         if (updateDto.getPhone() != null) {
             user.setPhone(updateDto.getPhone());
