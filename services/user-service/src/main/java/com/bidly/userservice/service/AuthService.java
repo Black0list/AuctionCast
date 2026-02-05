@@ -88,7 +88,7 @@ public class AuthService {
         } catch (HttpClientErrorException e) {
 
             System.err.println("Keycloak Error Body: " + e.getResponseBodyAsString());
-            throw new RuntimeException("Login failed: " + e.getResponseBodyAsString());
+            throw new IllegalArgumentException("Bad Credentials" + e.getResponseBodyAsString());
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Internal login error");

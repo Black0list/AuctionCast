@@ -43,6 +43,14 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(errors, "Validation failed"));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArg(IllegalArgumentException ex) {
+
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.error("Invalid Credentials"));
+    }
+
     // ---------- DB CONSTRAINTS ----------
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(
