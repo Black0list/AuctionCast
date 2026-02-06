@@ -28,6 +28,7 @@
 
         <!-- Business Services -->
         <module>services/user-service</module>
+        <module>services/catalog-service</module>
     </modules>
 
     <properties>

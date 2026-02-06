@@ -1,12 +1,16 @@
 package com.bidly.userservice.service;
 
 import com.bidly.common.dto.ApiResponse;
+import com.bidly.common.exception.KeycloakException;
 import com.bidly.common.exception.ResourceExistsException;
 import com.bidly.common.exception.ResourceNotFoundException;
+import com.bidly.userservice.cache.UserCacheWriter;
 import com.bidly.userservice.dto.*;
 import com.bidly.userservice.entity.User;
 import com.bidly.userservice.mapper.UserMapper;
 import com.bidly.userservice.repository.UserRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +35,8 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
     private final FileStorageService fileStorageService;
+    private final UserCacheWriter userCacheWriter;
+
 
     @Value("${keycloak.server-url}")
     private String keycloakUrl;
@@ -40,7 +46,6 @@ public class AuthService {
 
     @Value("${keycloak.public-client-id}")
     private String publicClientId;
-
 
     @Value("${keycloak.admin-client-id}")
     private String publicAdminClientId;
@@ -52,9 +57,10 @@ public class AuthService {
 
         String keycloakId = keycloakAdminService.registerUser(request);
 
-        User user = UserMapper.toEntity(request);
+        User user = UserMapper.toEntity(request, keycloakId);
 
         userRepository.save(user);
+        userCacheWriter.putPublicProfile(user);
 
         return ApiResponse.success(keycloakId, "User registered successfully");
     }
@@ -87,16 +93,27 @@ public class AuthService {
 
         } catch (HttpClientErrorException e) {
 
-            System.err.println("Keycloak Error Body: " + e.getResponseBodyAsString());
-            throw new RuntimeException("Login failed: " + e.getResponseBodyAsString());
+            String body = e.getResponseBodyAsString();
+            String errorDescription = "Keycloak authentication error";
+
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode json = mapper.readTree(body);
+
+                if (json.has("error_description")) {
+                    errorDescription = json.get("error_description").asText();
+                }
+            } catch (Exception ignored) {}
+
+            throw new KeycloakException(errorDescription);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Internal login error");
         }
     }
 
-    public ApiResponse<UserDTO> getProfile(UUID id) {
-        User user = userRepository.findById(id)
+    public ApiResponse<UserDTO> getProfile(String id) {
+        User user = userRepository.findByKeycloakId(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return ApiResponse.success(UserMapper.toDto(user), "User profile retrieved successfully");
@@ -119,7 +136,16 @@ public class AuthService {
 
         UserMapper.patchEntity(user, updateDto, imageUrl);
 
+        keycloakAdminService.updateUser(
+                user.getKeycloakId(),
+                updateDto.getEmail(),
+                updateDto.getFirstName(),
+                updateDto.getLastName(),
+                null 
+        );
+
         userRepository.save(user);
+        userCacheWriter.putPublicProfile(user);
 
         return ApiResponse.success(UserMapper.toDto(user),"User updated successfully");
     }

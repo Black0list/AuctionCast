@@ -43,6 +43,23 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(errors, "Validation failed"));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArg(IllegalArgumentException ex) {
+
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(KeycloakException.class)
+    public ResponseEntity<ApiResponse<Void>> handleKeycloakException(KeycloakException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+
     // ---------- DB CONSTRAINTS ----------
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(
