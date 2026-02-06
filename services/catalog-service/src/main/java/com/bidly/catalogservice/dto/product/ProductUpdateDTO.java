@@ -13,7 +13,7 @@ import java.util.List;
 
 @Data
 @Builder
-public class ProductDTO {
+public class ProductUpdateDTO {
 
     @NotBlank(message = "Title is required")
     @Size(max = 255, message = "Title can have at most 255 characters")
@@ -25,8 +25,14 @@ public class ProductDTO {
     @NotNull(message = "Condition is required")
     private ProductCondition condition;
 
+    @NotNull(message = "Status is required")
+    private ProductStatus status;
+
     @NotNull(message = "Category name is required")
     private String categoryName;
+
+    @NotNull(message = "Product status is required")
+    private Boolean deleted;
 
     private List<MultipartFile> images;
 }

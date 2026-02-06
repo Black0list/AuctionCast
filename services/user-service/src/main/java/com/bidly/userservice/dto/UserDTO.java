@@ -10,7 +10,7 @@ import java.util.UUID;
 @Data
 @Builder
 public class UserDTO {
-    private UUID id;
+    private String id;
     private String email;
     private String photo;
     private String firstName;

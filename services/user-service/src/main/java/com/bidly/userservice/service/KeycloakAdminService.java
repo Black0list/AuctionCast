@@ -67,4 +67,22 @@ public class KeycloakAdminService {
                 .realmLevel()
                 .add(Collections.singletonList(role));
     }
+
+    public void updateUser(String keycloakId, String email, String firstName, String lastName, Boolean enabled) {
+        UserRepresentation user = keycloak.realm(realm).users().get(keycloakId).toRepresentation();
+
+        if (email != null) {
+            user.setEmail(email);
+            user.setUsername(email);
+        }
+        if (firstName != null) user.setFirstName(firstName);
+        if (lastName != null) user.setLastName(lastName);
+        if (enabled != null) user.setEnabled(enabled);
+
+        keycloak.realm(realm).users().get(keycloakId).update(user);
+    }
+
+    public void deleteUser(String keycloakId) {
+        keycloak.realm(realm).users().get(keycloakId).remove();
+    }
 }

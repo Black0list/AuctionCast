@@ -2,6 +2,7 @@ package com.bidly.catalogservice.entity;
 
 import com.bidly.common.enums.ProductCondition;
 import com.bidly.common.enums.ProductStatus;
+import com.bidly.common.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,11 +14,12 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "products")
-@Data
 @Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Product {
+public class Product extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -45,9 +47,6 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductImage> images = new ArrayList<>();
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    @Column(nullable = false)
+    private boolean deleted = false;
 }

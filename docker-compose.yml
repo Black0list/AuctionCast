@@ -103,6 +103,14 @@ services:
     networks:
       - bidly-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: bidly-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - bidly-network
+
 networks:
   bidly-network:
     driver: bridge

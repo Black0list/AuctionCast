@@ -13,8 +13,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -37,14 +35,12 @@ public class AuthController {
     @GetMapping("/users/me")
     public ApiResponse<UserDTO> getProfile(@AuthenticationPrincipal Jwt jwt) {
         User user = userSyncService.sync(jwt);
-        return authService.getProfile(user.getId());
+        return authService.getProfile(user.getKeycloakId());
     }
 
     @PatchMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<UserDTO> updateProfile(@AuthenticationPrincipal Jwt jwt, @Valid @ModelAttribute UserUpdateDTO updateDto) {
-        ApiResponse<UserDTO> response = authService.updateUser(jwt, updateDto);
-        userSyncService.sync(jwt);
-        return response;
+        return authService.updateUser(jwt, updateDto);
     }
 
 }

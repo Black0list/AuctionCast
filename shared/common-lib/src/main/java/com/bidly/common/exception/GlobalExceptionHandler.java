@@ -48,8 +48,17 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .badRequest()
-                .body(ApiResponse.error("Invalid Credentials"));
+                .body(ApiResponse.error(ex.getMessage()));
     }
+
+    @ExceptionHandler(KeycloakException.class)
+    public ResponseEntity<ApiResponse<Void>> handleKeycloakException(KeycloakException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
 
     // ---------- DB CONSTRAINTS ----------
     @ExceptionHandler(DataIntegrityViolationException.class)
