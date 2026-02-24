@@ -1,12 +1,9 @@
 package com.bidly.coreservice.repository;
 
-import com.bidly.coreservice.entity.Auction;
+import com.bidly.coreservice.entity.Wallet;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.UUID;
-
-
 @Repository
-public interface AuctionRepository extends JpaRepository<Auction, UUID> {
+public interface WalletRepository extends JpaRepository<Wallet, String> {
 }

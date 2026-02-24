@@ -10,6 +10,5 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 @RequestMapping("/auctions")
 public class AuctionController {
-
     private final AuctionService auctionService;
 }

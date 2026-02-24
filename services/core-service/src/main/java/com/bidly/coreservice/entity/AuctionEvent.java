@@ -1,6 +1,7 @@
 package com.bidly.coreservice.entity;
 
 import com.bidly.common.enums.AuctionEventType;
+import com.bidly.common.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,14 +16,15 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuctionEvent {
+public class AuctionEvent extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
-    private UUID auctionId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "auction_id", nullable = false)
+    private Auction auction;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -33,7 +35,4 @@ public class AuctionEvent {
 
     @Column(columnDefinition = "TEXT")
     private String note;
-
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
 }
