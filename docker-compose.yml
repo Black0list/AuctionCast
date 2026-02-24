@@ -103,6 +103,18 @@ services:
     networks:
       - bidly-network
 
+  core-service_db:
+    image: postgres:15
+    container_name: core-service_db
+    environment:
+      POSTGRES_USER: bidly_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: core-service_db
+    ports:
+      - "5435:5432"
+    networks:
+      - bidly-network
+
   redis:
     image: redis:7-alpine
     container_name: bidly-redis

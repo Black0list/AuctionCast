@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>security-lib</artifactId>
-    <name>Security Library</name>
+    <name>security-lib</name>
 
     <dependencies>
         <dependency>
