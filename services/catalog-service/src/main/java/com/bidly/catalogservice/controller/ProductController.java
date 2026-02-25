@@ -5,6 +5,7 @@ import com.bidly.catalogservice.dto.product.ProductResponseDTO;
 import com.bidly.catalogservice.dto.product.ProductUpdateDTO;
 import com.bidly.catalogservice.service.ProductService;
 import com.bidly.common.dto.ApiResponse;
+import com.bidly.common.dto.ProductPublicDTO;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,6 +35,23 @@ public class ProductController {
     @GetMapping("/{id}")
     public ApiResponse<ProductResponseDTO> getProduct(@PathVariable UUID id) {
         return productService.getProduct(id);
+    }
+
+    @GetMapping("/{id}/isProductOwner/{userId}")
+    public ApiResponse<Boolean> isProductOwner(@PathVariable UUID id, @PathVariable String userId) {
+        return productService.isProductOwner(id, userId);
+    }
+
+    @GetMapping("/public/{id}")
+    public ApiResponse<ProductPublicDTO> getPublicProduct(@PathVariable UUID id) {
+        ApiResponse<ProductResponseDTO> productDTO =  productService.getProduct(id);
+        ProductPublicDTO publicProductDTO = ProductPublicDTO.builder()
+                .id(productDTO.getData().getId())
+                .title(productDTO.getData().getTitle())
+                .description(productDTO.getData().getDescription())
+                .build();
+
+        return ApiResponse.success(publicProductDTO, "Public product retrieved successfully");
     }
 
     @PostMapping(consumes = {"multipart/form-data"})

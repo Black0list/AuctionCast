@@ -1,6 +1,5 @@
 package com.bidly.catalogservice.client;
 
-import ch.qos.logback.core.spi.ConfigurationEvent;
 import com.bidly.common.dto.ApiResponse;
 import com.bidly.common.dto.UserPublicDTO;
 import com.bidly.security.feign.FeignClientInterceptor;

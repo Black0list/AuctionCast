@@ -17,6 +17,7 @@
         <option value="$PROJECT_DIR$/shared/security-lib/pom.xml" />
         <option value="$PROJECT_DIR$/services/user-service/pom.xml" />
         <option value="$PROJECT_DIR$/services/catalog-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/auction-service/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">
@@ -24,7 +25,6 @@
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="$PROJECT_DIR$/services/Ai/pom.xml" />
         <option value="$PROJECT_DIR$/services/admin-service/pom.xml" />
-        <option value="$PROJECT_DIR$/services/auction-service/pom.xml" />
         <option value="$PROJECT_DIR$/services/bidding-service/pom.xml" />
         <option value="$PROJECT_DIR$/services/notification-service/pom.xml" />
         <option value="$PROJECT_DIR$/services/shipping-service/pom.xml" />
