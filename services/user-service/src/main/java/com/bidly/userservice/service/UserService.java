@@ -8,7 +8,6 @@ import com.bidly.userservice.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,4 +38,11 @@ public class UserService {
         return ApiResponse.success(profiles, "Batch profiles fetched successfully");
     }
 
+    public ApiResponse<UserPublicDTO> findOne(String userId) {
+        UserPublicDTO user = userRepository.findByKeycloakId(userId)
+                .map(UserMapper::toPublicDto)
+                .orElse(null);
+
+        return ApiResponse.success(user, "User retrieved successfully");
+    }
 }

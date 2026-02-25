@@ -22,6 +22,11 @@ public class UserController {
         return userService.isSeller(userId);
     }
 
+    @GetMapping("/{userId}")
+    public ApiResponse<UserPublicDTO> findOne(@PathVariable String userId){
+        return userService.findOne(userId);
+    }
+
     @GetMapping("/batch-public-profiles")
     public ApiResponse<List<UserPublicDTO>> batchProfiles(@RequestBody List<String> missingIds){
         return userService.batchProfiles(missingIds);

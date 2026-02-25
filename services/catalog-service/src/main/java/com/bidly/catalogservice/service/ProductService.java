@@ -184,4 +184,11 @@ public class ProductService {
         productRepository.save(product);
         return ApiResponse.success("Product soft deleted successfully");
     }
+
+    public ApiResponse<Boolean> isProductOwner(UUID id, String userId) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        return ApiResponse.success(product.getSellerId().equals(userId), "Ownership check completed");
+    }
 }

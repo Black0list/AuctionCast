@@ -1,16 +1,12 @@
 package com.bidly.coreservice.service;
 
 import com.bidly.common.dto.ApiResponse;
-import com.bidly.common.dto.UserPublicDTO;
 import com.bidly.coreservice.dto.wallet.WalletResponseDTO;
 import com.bidly.coreservice.entity.Wallet;
 import com.bidly.coreservice.mapper.WalletMapper;
 import com.bidly.coreservice.repository.WalletRepository;
+import com.bidly.coreservice.util.Util;
 import lombok.AllArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +27,7 @@ public class WalletService {
                         .build())
         );
 
-        return ApiResponse.success(WalletMapper.toResponseDto(wallet, getUserDto()), "Wallet retrieved successfully");
+        return ApiResponse.success(WalletMapper.toResponseDto(wallet, Util.getUserDto()), "Wallet retrieved successfully");
     }
 
     @Transactional
@@ -51,20 +47,7 @@ public class WalletService {
         wallet.setAvailableBalance(wallet.getAvailableBalance().add(amount));
         walletRepository.save(wallet);
 
-        return ApiResponse.success(WalletMapper.toResponseDto(wallet, getUserDto()), "Wallet recharged successfully");
+        return ApiResponse.success(WalletMapper.toResponseDto(wallet, Util.getUserDto()), "Wallet recharged successfully");
     }
 
-    private static UserPublicDTO getUserDto() {
-        Authentication authentication = SecurityContextHolder
-                .getContext()
-                .getAuthentication();
-
-        Jwt jwt = (Jwt) authentication.getPrincipal();
-
-        return UserPublicDTO.builder()
-                .id(jwt.getSubject())
-                .firstName(jwt.getClaimAsString("given_name"))
-                .lastName(jwt.getClaimAsString("family_name"))
-                .build();
-    }
 }

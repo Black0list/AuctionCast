@@ -9,16 +9,16 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Entity
 @Table(
         name = "wallet_holds",
         uniqueConstraints = @UniqueConstraint(name = "uk_wallet_hold_auction_user", columnNames = {"auction_id", "user_id"}),
         indexes = {
-                @Index(name = "idx_wallet_holds_user", columnList = "user_id"),
-                @Index(name = "idx_wallet_holds_auction", columnList = "auction_id")
+                @Index(name = "idx_wallet_hold_user", columnList = "user_id"),
+                @Index(name = "idx_wallet_hold_auction", columnList = "auction_id")
         }
 )
 public class WalletHold extends BaseEntity {
@@ -27,10 +27,11 @@ public class WalletHold extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "auction_id", nullable = false)
-    private UUID auctionId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "auction_id", nullable = false)
+    private Auction auction;
 
-    @Column(name = "user_id", nullable = false, length = 128)
+    @Column(name = "user_id", nullable = false)
     private String userId;
 
     @Column(nullable = false, precision = 19, scale = 2)

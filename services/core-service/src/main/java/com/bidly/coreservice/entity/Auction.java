@@ -7,8 +7,6 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -32,11 +30,11 @@ public class Auction extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "product_id", nullable = false, updatable = false)
+    @Column(name = "product_id", nullable = false, updatable = false, unique = true)
     private UUID productId;
 
     @Column(name = "seller_id", nullable = false, updatable = false)
-    private UUID sellerId;
+    private String sellerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -52,7 +50,7 @@ public class Auction extends BaseEntity {
     private BigDecimal minIncrement;
 
     @Column(name = "current_winner_id")
-    private UUID currentWinnerId;
+    private String currentWinnerId;
 
     @Column(name = "starts_at")
     private Instant startsAt;
@@ -70,13 +68,10 @@ public class Auction extends BaseEntity {
     @Column(nullable = false)
     private boolean deleted = false;
 
-    @OneToMany(mappedBy = "auction", fetch = FetchType.LAZY)
-    private List<AuctionEvent> events = new ArrayList<>();
-
     @PrePersist
     void prePersist() {
         if (currentPrice == null) currentPrice = startPrice;
         if (status == null) status = AuctionStatus.DRAFT;
-        if (minIncrement == null) minIncrement = BigDecimal.ONE; // choose your default
+        if (minIncrement == null) minIncrement = BigDecimal.ONE;
     }
 }
