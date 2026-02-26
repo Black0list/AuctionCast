@@ -42,9 +42,18 @@ public class AuctionService {
         validateTimes(dto.getStartsAt(), dto.getEndsAt());
 
         Auction auction = AuctionMapper.toEntity(dto, sellerId);
-        auction.setStatus(AuctionStatus.DRAFT);
         auction.setDeleted(false);
         auction.setBidCount(0);
+        auction.setCurrentPrice(dto.getStartPrice());
+        auction.setCurrentWinnerId(null);
+
+        Instant now = Instant.now();
+        if (dto.getStartsAt() != null && dto.getStartsAt().isAfter(now)) {
+            auction.setStatus(AuctionStatus.SCHEDULED);
+        } else {
+            auction.setStatus(AuctionStatus.ACTIVE);
+            auction.setStartsAt(now);
+        }
 
         auctionRepository.save(auction);
 
@@ -279,13 +288,17 @@ public class AuctionService {
         List<Auction> auctions = auctionRepository.findByStatusAndStartsAtLessThanEqualAndDeletedFalse(AuctionStatus.SCHEDULED, now);
 
         for (Auction auction : auctions) {
-            if (auction.getEndsAt() != null && auction.getEndsAt().isAfter(now)) {
-                auction.setStatus(AuctionStatus.ACTIVE);
-                if (auction.getStartsAt() == null) {
-                    auction.setStartsAt(now);
-                }
-                if (auction.getCurrentPrice() == null) {
-                    auction.setCurrentPrice(auction.getStartPrice());
+            if (auction.getEndsAt() != null) {
+                if (auction.getEndsAt().isAfter(now)) {
+                    auction.setStatus(AuctionStatus.ACTIVE);
+                    if (auction.getStartsAt() == null) {
+                        auction.setStartsAt(now);
+                    }
+                    if (auction.getCurrentPrice() == null) {
+                        auction.setCurrentPrice(auction.getStartPrice());
+                    }
+                } else {
+                   auction.setStatus(AuctionStatus.ENDED);
                 }
                 auctionRepository.save(auction);
             }
