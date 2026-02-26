@@ -1,5 +1,6 @@
 package com.bidly.userservice.service;
 
+import com.bidly.common.exception.ResourceExistsException;
 import com.bidly.userservice.dto.RegisterUserRequestDTO;
 import jakarta.ws.rs.core.Response;
 import org.keycloak.admin.client.CreatedResponseUtil;
@@ -43,8 +44,10 @@ public class KeycloakAdminService {
         UsersResource usersResource = keycloak.realm(realm).users();
         Response response = usersResource.create(user);
 
-        if (response.getStatus() != 201) {
-            throw new RuntimeException("Failed to create user in Keycloak. Status: " + response.getStatus());
+        if (response.getStatus() == 409) {
+            throw new ResourceExistsException("Email already used");
+        } else if(response.getStatus() != 201) {
+            throw new IllegalArgumentException("Failed to create user: " + response.getStatusInfo());
         }
 
         String userId = CreatedResponseUtil.getCreatedId(response);

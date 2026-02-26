@@ -32,15 +32,15 @@ public class BidService {
                 .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
 
         if (auction.isDeleted()) {
-            throw new IllegalStateException("Auction is deleted");
+            throw new IllegalArgumentException("Auction is deleted");
         }
 
         if (auction.getStatus() != AuctionStatus.ACTIVE) {
-            throw new IllegalStateException("Auction is not active");
+            throw new IllegalArgumentException("Auction is not active");
         }
 
         if (auction.getEndsAt() != null && Instant.now().isAfter(auction.getEndsAt())) {
-            throw new IllegalStateException("Auction already ended");
+            throw new IllegalArgumentException("Auction already ended");
         }
 
         BigDecimal amount = dto.getAmount();
@@ -50,7 +50,7 @@ public class BidService {
 
         BigDecimal minAllowed = auction.getCurrentPrice().add(auction.getMinIncrement());
         if (amount.compareTo(minAllowed) < 0) {
-            throw new IllegalStateException("Bid must be at least " + minAllowed);
+            throw new IllegalArgumentException("Bid must be at least " + minAllowed);
         }
 
         String prevWinner = auction.getCurrentWinnerId();

@@ -23,7 +23,7 @@ public class FileStorageService {
         try {
             Files.createDirectories(root);
         } catch (IOException e) {
-            throw new RuntimeException("Could not initialize upload directory", e);
+            throw new IllegalArgumentException("Could not initialize upload directory", e);
         }
     }
 
@@ -37,7 +37,7 @@ public class FileStorageService {
 
             return "/uploads/" + folder + "/" + filePath.getFileName();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to store file", e);
+            throw new IllegalArgumentException("Failed to store file", e);
         }
     }
 
@@ -53,7 +53,7 @@ public class FileStorageService {
 
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to delete file: " + photoPath, e);
+            throw new IllegalArgumentException("Failed to delete file: " + photoPath, e);
         }
     }
 

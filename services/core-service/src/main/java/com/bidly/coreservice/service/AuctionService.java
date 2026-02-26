@@ -73,7 +73,7 @@ public class AuctionService {
         Auction auction = getOwnedAuction(auctionId, sellerId);
 
         if (auction.getStatus() != AuctionStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT auctions can be updated");
+            throw new IllegalArgumentException("Only DRAFT auctions can be updated");
         }
 
         validateTimes(dto.getStartsAt(), dto.getEndsAt());
@@ -105,7 +105,7 @@ public class AuctionService {
         Auction auction = getOwnedAuction(auctionId, sellerId);
 
         if (auction.getStatus() != AuctionStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT auctions can be scheduled");
+            throw new IllegalArgumentException("Only DRAFT auctions can be scheduled");
         }
 
         validateTimes(dto.getStartsAt(), dto.getEndsAt());
@@ -136,13 +136,13 @@ public class AuctionService {
         Auction auction = getOwnedAuction(auctionId, sellerId);
 
         if (auction.getStatus() != AuctionStatus.DRAFT && auction.getStatus() != AuctionStatus.SCHEDULED) {
-            throw new IllegalStateException("Only DRAFT or SCHEDULED auctions can be published");
+            throw new IllegalArgumentException("Only DRAFT or SCHEDULED auctions can be published");
         }
 
         Instant now = Instant.now();
 
         if (auction.getEndsAt() == null) {
-            throw new IllegalStateException("Auction endsAt is not set");
+            throw new IllegalArgumentException("Auction endsAt is not set");
         }
 
         if (!auction.getEndsAt().isAfter(now)) {
@@ -175,11 +175,11 @@ public class AuctionService {
         Auction auction = getOwnedAuction(auctionId, sellerId);
 
         if (auction.getStatus() == AuctionStatus.ENDED || auction.getStatus() == AuctionStatus.CANCELLED) {
-            throw new IllegalStateException("Auction cannot be cancelled");
+            throw new IllegalArgumentException("Auction cannot be cancelled");
         }
 
         if (auction.getStatus() == AuctionStatus.ACTIVE && auction.getBidCount() > 0) {
-            throw new IllegalStateException("Auction cannot be cancelled after bids were placed");
+            throw new IllegalArgumentException("Auction cannot be cancelled after bids were placed");
         }
 
         auction.setStatus(AuctionStatus.CANCELLED);
@@ -202,7 +202,7 @@ public class AuctionService {
         Auction auction = getOwnedAuction(auctionId, sellerId);
 
         if (auction.getStatus() != AuctionStatus.ACTIVE) {
-            throw new IllegalStateException("Only ACTIVE auctions can be ended");
+            throw new IllegalArgumentException("Only ACTIVE auctions can be ended");
         }
 
         auction.setStatus(AuctionStatus.ENDED);
@@ -347,7 +347,7 @@ public class AuctionService {
         ApiResponse<Boolean> res = userClient.isSeller(userId);
 
         if (res == null || !res.isSuccess() || res.getData() == null) {
-            throw new IllegalStateException("Could not verify seller status");
+            throw new IllegalArgumentException("Could not verify seller status");
         }
 
         if (!Boolean.TRUE.equals(res.getData())) {
@@ -361,13 +361,13 @@ public class AuctionService {
         try {
             res = productClient.isProductOwner(productId, userId);
         } catch (FeignException.NotFound ex) {
-            throw new IllegalStateException("Product not found");
+            throw new IllegalArgumentException("Product not found");
         } catch (FeignException ex) {
-            throw new IllegalStateException("Product service not available");
+            throw new IllegalArgumentException("Product service not available");
         }
 
         if (res == null || res.getData() == null) {
-            throw new IllegalStateException("Product service not available");
+            throw new IllegalArgumentException("Product service not available");
         }
 
         if (!Boolean.TRUE.equals(res.getData())) {
@@ -377,7 +377,7 @@ public class AuctionService {
 
     private void assertNoOtherAuctionForProduct(UUID productId) {
         if (auctionRepository.findByProductId(productId).isPresent()) {
-            throw new IllegalStateException("Auction already exists for this product");
+            throw new IllegalArgumentException("Auction already exists for this product");
         }
     }
 

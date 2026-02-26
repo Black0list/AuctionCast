@@ -44,11 +44,11 @@ public class OrderService {
         }
 
         if (auction.getStatus() != AuctionStatus.ENDED) {
-            throw new IllegalStateException("Order can be created only when auction is ENDED");
+            throw new IllegalArgumentException("Order can be created only when auction is ENDED");
         }
 
         if (auction.getCurrentWinnerId() == null) {
-            throw new IllegalStateException("Auction has no winner");
+            throw new IllegalArgumentException("Auction has no winner");
         }
 
         if (!auction.getCurrentWinnerId().equals(buyerId)) {
@@ -56,7 +56,7 @@ public class OrderService {
         }
 
         if (orderRepository.findByAuctionId(auctionId).isPresent()) {
-            throw new IllegalStateException("Order already exists for this auction");
+            throw new IllegalArgumentException("Order already exists for this auction");
         }
 
         Order order = OrderMapper.toEntity(auction, buyerId, dto);
@@ -76,7 +76,7 @@ public class OrderService {
         }
 
         if (order.getStatus() != OrderStatus.PENDING_SHIPMENT) {
-            throw new IllegalStateException("Only PENDING_SHIPMENT orders can be shipped");
+            throw new IllegalArgumentException("Only PENDING_SHIPMENT orders can be shipped");
         }
 
         order.setCarrier(dto.getCarrier());
@@ -97,7 +97,7 @@ public class OrderService {
         }
 
         if (order.getStatus() != OrderStatus.SHIPPED) {
-            throw new IllegalStateException("Only SHIPPED orders can be marked as DELIVERED");
+            throw new IllegalArgumentException("Only SHIPPED orders can be marked as DELIVERED");
         }
 
         order.setStatus(OrderStatus.DELIVERED);

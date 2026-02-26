@@ -108,7 +108,7 @@ public class AuthService {
             throw new KeycloakException(errorDescription);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Internal login error");
+            throw new KeycloakException("Internal login error");
         }
     }
 
