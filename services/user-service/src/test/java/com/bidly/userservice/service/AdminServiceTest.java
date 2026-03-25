@@ -2,11 +2,9 @@ package com.bidly.userservice.service;
 
 import com.bidly.common.dto.ApiResponse;
 import com.bidly.common.enums.SellerStatus;
-import com.bidly.common.exception.ResourceNotFoundException;
 import com.bidly.userservice.cache.UserCacheWriter;
 import com.bidly.userservice.client.CatalogClient;
 import com.bidly.userservice.client.CoreClient;
-import com.bidly.userservice.dto.UserDTO;
 import com.bidly.userservice.entity.User;
 import com.bidly.userservice.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
