@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 
 @AllArgsConstructor
@@ -19,6 +20,7 @@ public class BidController {
     private final BidService bidService;
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<BidResponseDTO> placeBid(
             @Valid @RequestBody PlaceBidDTO dto,
             @AuthenticationPrincipal Jwt jwt
