@@ -25,10 +25,11 @@ public class GlobalSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/auth/users").hasRole("ADMIN")
-                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/products/**", "/auctions/active", "/auctions/public/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auctions/{id:[a-fA-F0-9\\-]{36}}").permitAll()
                         .requestMatchers("/stripe/webhook", "/stripe/webhook/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.UUID;
@@ -76,16 +77,19 @@ public class ProductController {
 
 
     @PostMapping(consumes = {"multipart/form-data"})
+    @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<ProductResponseDTO> createProduct(@Valid @ModelAttribute ProductDTO dto, @AuthenticationPrincipal Jwt jwt) {
         return productService.createProduct(dto, jwt.getSubject());
     }
 
     @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+    @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<ProductResponseDTO> updateProduct(@PathVariable("id") UUID id, @Valid @ModelAttribute ProductUpdateDTO dto) {
         return productService.updateProduct(id, dto);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SELLER')")
     public ApiResponse<String> deleteProduct(@PathVariable("id") UUID id, @RequestParam(value = "hard", defaultValue = "false") boolean hard) {
         return productService.deleteProduct(id, hard);
     }
@@ -96,6 +100,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}/status/{status}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<ProductResponseDTO> updateStatus(@PathVariable("id") UUID id, @PathVariable("status") com.bidly.common.enums.ProductStatus status) {
         return productService.updateStatus(id, status);
     }
