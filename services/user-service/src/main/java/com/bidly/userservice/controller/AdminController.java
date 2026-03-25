@@ -26,12 +26,32 @@ public class AdminController {
     }
 
     @PatchMapping(value = "/users/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<UserDTO> updateUser(@PathVariable String id, @Valid @ModelAttribute UserAdminUpdateDTO updateDto) {
+    public ApiResponse<UserDTO> updateUser(@PathVariable("id") String id, @Valid @ModelAttribute UserAdminUpdateDTO updateDto) {
         return adminService.updateUser(id, updateDto);
     }
 
     @DeleteMapping("/users/{id}")
-    public ApiResponse<Void> deleteUser(@PathVariable String id, @RequestParam(defaultValue = "false") boolean hardDelete) {
+    public ApiResponse<Void> deleteUser(@PathVariable("id") String id, @RequestParam(value = "hardDelete", defaultValue = "true") boolean hardDelete) {
         return adminService.deleteUser(id, hardDelete);
+    }
+
+    @PostMapping("/users/{id}/approve-seller")
+    public ApiResponse<Void> approveSeller(@PathVariable("id") String id) {
+        return adminService.approveSeller(id);
+    }
+
+    @PostMapping("/users/{id}/reject-seller")
+    public ApiResponse<Void> rejectSeller(@PathVariable("id") String id) {
+        return adminService.rejectSeller(id);
+    }
+
+    @GetMapping("/users/count")
+    public ApiResponse<Long> countUsers() {
+        return adminService.countAllUsers();
+    }
+
+    @PatchMapping("/users/{id}/status")
+    public ApiResponse<Void> updateStatus(@PathVariable("id") String id, @RequestParam("isActive") boolean isActive) {
+        return adminService.updateUserStatus(id, isActive);
     }
 }

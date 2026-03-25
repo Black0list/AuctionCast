@@ -39,9 +39,28 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private boolean isActive;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SellerStatus sellerStatus = SellerStatus.NONE;
+
+    @Column(length = 255)
+    private String addressLine1;
+
+    @Column(length = 255)
+    private String addressLine2;
+
+    @Column(length = 100)
+    private String city;
+
+    @Column(length = 100)
+    private String state;
+
+    @Column(length = 20)
+    private String postalCode;
+
+    @Column(length = 100)
+    private String country;
 
     @Column(nullable = false)
     private LocalDateTime lastLoginAt;

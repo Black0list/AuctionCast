@@ -3,6 +3,8 @@ package com.bidly.userservice.service;
 
 import com.bidly.common.dto.ApiResponse;
 import com.bidly.common.dto.UserPublicDTO;
+import com.bidly.common.exception.ResourceNotFoundException;
+import com.bidly.userservice.entity.User;
 import com.bidly.userservice.mapper.UserMapper;
 import com.bidly.userservice.repository.UserRepository;
 import lombok.AllArgsConstructor;
@@ -21,9 +23,30 @@ public class UserService {
 
     public ApiResponse<Boolean> isSeller(String userId){
 
-        Boolean exists = userRepository.existsByKeycloakId(userId);
+        User user = userRepository.findByKeycloakId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        return ApiResponse.success(exists, "User status returned");
+        boolean isSeller = user.getSellerStatus() == com.bidly.common.enums.SellerStatus.APPROVED;
+
+        return ApiResponse.success(isSeller, "User status returned");
+    }
+
+    public ApiResponse<Void> applyToBeSeller(String userId) {
+        User user = userRepository.findByKeycloakId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getSellerStatus() == com.bidly.common.enums.SellerStatus.PENDING) {
+            throw new IllegalArgumentException("You already have a pending application");
+        }
+
+        if (user.getSellerStatus() == com.bidly.common.enums.SellerStatus.APPROVED) {
+            throw new IllegalArgumentException("You are already an approved seller");
+        }
+
+        user.setSellerStatus(com.bidly.common.enums.SellerStatus.PENDING);
+        userRepository.save(user);
+
+        return ApiResponse.success(null, "Seller application submitted successfully");
     }
 
     public ApiResponse<List<UserPublicDTO>> batchProfiles(List<String> missingIds) {

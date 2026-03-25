@@ -58,17 +58,21 @@ public class KeycloakAdminService {
     }
 
     private void assignRole(String userId, String roleName) {
-        RoleRepresentation role = keycloak.realm(realm)
-                .roles()
-                .get(roleName)
-                .toRepresentation();
+        try {
+            RoleRepresentation role = keycloak.realm(realm)
+                    .roles()
+                    .get(roleName)
+                    .toRepresentation();
 
-        keycloak.realm(realm)
-                .users()
-                .get(userId)
-                .roles()
-                .realmLevel()
-                .add(Collections.singletonList(role));
+            keycloak.realm(realm)
+                    .users()
+                    .get(userId)
+                    .roles()
+                    .realmLevel()
+                    .add(Collections.singletonList(role));
+        } catch (Exception e) {
+            System.err.println("Warning: Could not assign role " + roleName + " to user " + userId + ": " + e.getMessage());
+        }
     }
 
     public void updateUser(String keycloakId, String email, String firstName, String lastName, Boolean enabled) {

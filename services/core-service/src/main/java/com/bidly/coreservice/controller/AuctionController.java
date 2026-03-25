@@ -1,6 +1,7 @@
 package com.bidly.coreservice.controller;
 
 import com.bidly.common.dto.ApiResponse;
+import com.bidly.coreservice.dto.DashboardStatsDTO;
 import com.bidly.coreservice.dto.auction.AuctionResponseDTO;
 import com.bidly.coreservice.dto.auction.CreateAuctionDTO;
 import com.bidly.coreservice.dto.auction.ScheduleAuctionDTO;
@@ -32,7 +33,7 @@ public class AuctionController {
 
     @PutMapping("/{id}")
     public ApiResponse<AuctionResponseDTO> update(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @Valid @RequestBody UpdateAuctionDTO dto,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -41,7 +42,7 @@ public class AuctionController {
 
     @PostMapping("/{id}/schedule")
     public ApiResponse<AuctionResponseDTO> schedule(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @Valid @RequestBody ScheduleAuctionDTO dto,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -50,7 +51,7 @@ public class AuctionController {
 
     @PostMapping("/{id}/publish")
     public ApiResponse<AuctionResponseDTO> publish(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return auctionService.publishNow(id, jwt.getSubject());
@@ -58,7 +59,7 @@ public class AuctionController {
 
     @PostMapping("/{id}/cancel")
     public ApiResponse<AuctionResponseDTO> cancel(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return auctionService.cancel(id, jwt.getSubject());
@@ -66,7 +67,7 @@ public class AuctionController {
 
     @PostMapping("/{id}/end")
     public ApiResponse<AuctionResponseDTO> end(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return auctionService.end(id, jwt.getSubject());
@@ -74,7 +75,7 @@ public class AuctionController {
 
     @GetMapping("/{id}")
     public ApiResponse<AuctionResponseDTO> get(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return auctionService.get(id, jwt.getSubject());
@@ -88,5 +89,15 @@ public class AuctionController {
     @GetMapping("/me")
     public ApiResponse<List<AuctionResponseDTO>> myAuctions(@AuthenticationPrincipal Jwt jwt) {
         return auctionService.listMyAuctions(jwt.getSubject());
+    }
+
+    @GetMapping("/admin")
+    public ApiResponse<List<AuctionResponseDTO>> listAllAdmin() {
+        return auctionService.listAll();
+    }
+
+    @GetMapping("/admin/stats")
+    public ApiResponse<DashboardStatsDTO> getStats() {
+        return auctionService.getDashboardStats();
     }
 }

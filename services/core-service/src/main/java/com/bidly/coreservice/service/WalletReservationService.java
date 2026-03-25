@@ -75,4 +75,17 @@ public class WalletReservationService {
 
         walletHoldRepository.delete(hold);
     }
+
+    @Transactional
+    public void chargeReservedFunds(String userId, BigDecimal amount) {
+        Wallet wallet = walletRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
+
+        if (wallet.getReservedBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient reserved funds");
+        }
+
+        wallet.setReservedBalance(wallet.getReservedBalance().subtract(amount));
+        walletRepository.save(wallet);
+    }
 }
