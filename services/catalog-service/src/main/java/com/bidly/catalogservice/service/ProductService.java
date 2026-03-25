@@ -43,9 +43,6 @@ public class ProductService {
 
         List<Product> products = productRepository.findAll().stream().toList();
         
-        if (products.isEmpty()) {
-            throw new ResourceNotFoundException("No products found");
-        }
 
         List<ProductResponseDTO> productDTOs = products.stream()
                 .map(p -> {
@@ -59,17 +56,16 @@ public class ProductService {
 
     public ApiResponse<List<ProductResponseDTO>> listActive() {
         List<String> sellersIds = productRepository.findAll().stream()
-                .filter(p -> !p.isDeleted())
+                .filter(p -> p.getStatus() == ProductStatus.ACTIVE && !p.isDeleted())
                 .map(Product::getSellerId)
                 .toList();
 
         Map<String, UserPublicDTO> sellersDTOs = resolver(sellersIds);
 
-        List<Product> products = productRepository.findAll().stream().filter(p -> !p.isDeleted()).toList();
+        List<Product> products = productRepository.findAll().stream()
+                .filter(p -> p.getStatus() == ProductStatus.ACTIVE && !p.isDeleted())
+                .toList();
 
-        if (products.isEmpty()) {
-            throw new ResourceNotFoundException("No products found");
-        }
 
         List<ProductResponseDTO> productDTOs = products.stream()
                 .map(p -> {
@@ -133,6 +129,10 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
+        if (product.getStatus() != ProductStatus.DRAFT) {
+            throw new IllegalArgumentException("Product can only be updated if it is in DRAFT status");
+        }
+
         Category category = categoryRepository.findByName(dto.getCategoryName())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
@@ -171,6 +171,10 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
+        if (product.getStatus() != ProductStatus.DRAFT) {
+            throw new IllegalArgumentException("Product can only be deleted if it is in DRAFT status");
+        }
+
         if (hard) {
             for (ProductImage image : product.getImages()) {
                 fileStorageService.deleteFile(image.getImageUrl());
@@ -181,6 +185,7 @@ public class ProductService {
         }
 
         product.setDeleted(true);
+        product.setStatus(ProductStatus.ARCHIVED);
         productRepository.save(product);
         return ApiResponse.success("Product soft deleted successfully");
     }
@@ -190,5 +195,47 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         return ApiResponse.success(product.getSellerId().equals(userId), "Ownership check completed");
+    }
+
+    public ApiResponse<List<ProductResponseDTO>> myProducts(String userId) {
+        List<Product> products = productRepository.findBySellerId(userId);
+
+        Map<String, UserPublicDTO> sellerDTOMap = resolver(List.of(userId));
+
+        List<ProductResponseDTO> productDTOs = products.stream()
+                .map(p -> ProductMapper.toResponseDto(p, sellerDTOMap.get(userId)))
+                .toList();
+
+        return ApiResponse.success(productDTOs, "User's products retrieved successfully");
+    }
+
+    public ApiResponse<Long> countActiveProducts() {
+        long count = productRepository.findAll().stream()
+                .filter(p -> p.getStatus() == ProductStatus.ACTIVE && !p.isDeleted())
+                .count();
+        return ApiResponse.success(count, "Active products counted");
+    }
+
+    @Transactional
+    public void deleteUserProducts(String userId) {
+        List<Product> products = productRepository.findBySellerId(userId);
+        for (Product product : products) {
+            for (ProductImage image : product.getImages()) {
+                fileStorageService.deleteFile(image.getImageUrl());
+            }
+        }
+        productRepository.deleteAll(products);
+    }
+
+    @Transactional
+    public ApiResponse<ProductResponseDTO> updateStatus(UUID id, ProductStatus status) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        product.setStatus(status);
+        productRepository.save(product);
+
+        Map<String, UserPublicDTO> sellerDTOMap = resolver(List.of(product.getSellerId()));
+        return ApiResponse.success(ProductMapper.toResponseDto(product, sellerDTOMap.get(product.getSellerId())), "Product status updated successfully");
     }
 }

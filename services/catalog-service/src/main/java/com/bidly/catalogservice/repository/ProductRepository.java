@@ -11,4 +11,5 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     List<Product> findBySellerId(String sellerId);
     List<Product> findByCategoryId(Long categoryId);
     boolean existsByCategory(Category category);
+    void deleteBySellerId(String sellerId);
 }

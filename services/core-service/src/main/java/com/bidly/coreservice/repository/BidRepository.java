@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface BidRepository extends JpaRepository<Bid, UUID> {
     List<Bid> findByAuction_IdOrderByCreatedAtDesc(UUID auctionId);
+    void deleteByBidderId(String bidderId);
 }

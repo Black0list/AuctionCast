@@ -35,12 +35,12 @@ public class CategoryController {
     }
 
     @PutMapping("/{name}")
-    public ApiResponse<CategoryResponseDTO> updateCategory(@PathVariable String name, @Valid @RequestBody CategoryUpdateDTO dto) {
+    public ApiResponse<CategoryResponseDTO> updateCategory(@PathVariable("name") String name, @Valid @RequestBody CategoryUpdateDTO dto) {
         return categoryService.updateCategory(name, dto);
     }
 
     @DeleteMapping("/{name}")
-    public ApiResponse<String> deleteCategory(@PathVariable String name, @RequestParam boolean hard) {
+    public ApiResponse<String> deleteCategory(@PathVariable("name") String name, @RequestParam("hard") boolean hard) {
         return categoryService.deleteCategory(name, hard);
     }
 }

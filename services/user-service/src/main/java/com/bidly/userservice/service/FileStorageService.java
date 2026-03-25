@@ -23,7 +23,7 @@ public class FileStorageService {
         try {
             Files.createDirectories(root);
         } catch (IOException e) {
-            throw new RuntimeException("Could not initialize upload directory", e);
+            throw new IllegalArgumentException("Could not initialize upload directory", e);
         }
     }
 
@@ -37,7 +37,7 @@ public class FileStorageService {
 
             return "/uploads/" + folder + "/" + filePath.getFileName();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to store file", e);
+            throw new IllegalArgumentException("Failed to store file", e);
         }
     }
 
@@ -46,14 +46,20 @@ public class FileStorageService {
             return;
         }
 
-        try {
-            String relativePath = photoPath.replace("/uploads/", "");
+        if (photoPath.startsWith("http")) {
+            return;
+        }
 
-            Path filePath = root.resolve(relativePath);
+        try {
+            Path filePath = root.resolve(photoPath).normalize();
+
+            if (!filePath.startsWith(root)) {
+                return;
+            }
 
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to delete file: " + photoPath, e);
+            throw new IllegalArgumentException("Failed to delete file: " + photoPath, e);
         }
     }
 

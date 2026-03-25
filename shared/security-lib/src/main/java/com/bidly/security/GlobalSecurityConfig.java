@@ -28,7 +28,7 @@ public class GlobalSecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/users").hasRole("ADMIN")
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/stripe/webhook", "/stripe/webhook/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

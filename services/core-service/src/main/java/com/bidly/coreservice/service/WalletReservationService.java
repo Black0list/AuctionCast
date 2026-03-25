@@ -41,7 +41,7 @@ public class WalletReservationService {
         }
 
         if (wallet.getAvailableBalance().compareTo(delta) < 0) {
-            throw new IllegalStateException("INSUFFICIENT_FUNDS");
+            throw new IllegalArgumentException("INSUFFICIENT_FUNDS");
         }
 
         wallet.setAvailableBalance(wallet.getAvailableBalance().subtract(delta));
@@ -66,7 +66,7 @@ public class WalletReservationService {
         if (hold == null) return;
 
         Wallet wallet = walletRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("Wallet not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
 
         BigDecimal amount = hold.getAmount();
         wallet.setAvailableBalance(wallet.getAvailableBalance().add(amount));
@@ -74,5 +74,18 @@ public class WalletReservationService {
         walletRepository.save(wallet);
 
         walletHoldRepository.delete(hold);
+    }
+
+    @Transactional
+    public void chargeReservedFunds(String userId, BigDecimal amount) {
+        Wallet wallet = walletRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
+
+        if (wallet.getReservedBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient reserved funds");
+        }
+
+        wallet.setReservedBalance(wallet.getReservedBalance().subtract(amount));
+        walletRepository.save(wallet);
     }
 }

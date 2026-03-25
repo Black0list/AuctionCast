@@ -4,6 +4,10 @@ import com.bidly.common.dto.ApiResponse;
 import com.bidly.coreservice.dto.wallet.WalletResponseDTO;
 import com.bidly.coreservice.entity.Wallet;
 import com.bidly.coreservice.mapper.WalletMapper;
+import com.bidly.coreservice.repository.AuctionRepository;
+import com.bidly.coreservice.repository.BidRepository;
+import com.bidly.coreservice.repository.OrderRepository;
+import com.bidly.coreservice.repository.WalletHoldRepository;
 import com.bidly.coreservice.repository.WalletRepository;
 import com.bidly.coreservice.util.Util;
 import lombok.AllArgsConstructor;
@@ -17,6 +21,10 @@ import java.math.BigDecimal;
 public class WalletService {
 
     private final WalletRepository walletRepository;
+    private final AuctionRepository auctionRepository;
+    private final BidRepository bidRepository;
+    private final OrderRepository orderRepository;
+    private final WalletHoldRepository walletHoldRepository;
 
     public ApiResponse<WalletResponseDTO> getMyWallet(String userId) {
         Wallet wallet = walletRepository.findById(userId).orElseGet(() ->
@@ -32,22 +40,36 @@ public class WalletService {
 
     @Transactional
     public ApiResponse<WalletResponseDTO> recharge(String userId, BigDecimal amount) {
+        addFunds(userId, amount);
+        Wallet wallet = walletRepository.findById(userId).orElseThrow();
+        return ApiResponse.success(WalletMapper.toResponseDto(wallet, Util.getUserDto()), "Wallet recharged successfully");
+    }
+
+    @Transactional
+    public void addFunds(String userId, BigDecimal amount) {
         if (amount == null || amount.signum() <= 0) {
-            throw new IllegalArgumentException("Recharge amount must be greater than 0");
+            throw new IllegalArgumentException("Amount must be greater than 0");
         }
 
         Wallet wallet = walletRepository.findById(userId).orElseGet(() ->
-                Wallet.builder()
+                walletRepository.save(Wallet.builder()
                         .userId(userId)
                         .availableBalance(BigDecimal.ZERO)
                         .reservedBalance(BigDecimal.ZERO)
-                        .build()
+                        .build())
         );
 
         wallet.setAvailableBalance(wallet.getAvailableBalance().add(amount));
         walletRepository.save(wallet);
-
-        return ApiResponse.success(WalletMapper.toResponseDto(wallet, Util.getUserDto()), "Wallet recharged successfully");
     }
 
+    @Transactional
+    public void deleteUserData(String userId) {
+        bidRepository.deleteByBidderId(userId);
+        walletHoldRepository.deleteByUserId(userId);
+        orderRepository.deleteByBuyerId(userId);
+        orderRepository.deleteBySellerId(userId);
+        auctionRepository.deleteBySellerId(userId);
+        walletRepository.deleteByUserId(userId);
+    }
 }

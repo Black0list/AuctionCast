@@ -24,7 +24,7 @@ public class OrderController {
 
     @PostMapping("/auction/{auctionId}")
     public ApiResponse<OrderResponseDTO> createForAuction(
-            @PathVariable UUID auctionId,
+            @PathVariable("auctionId") UUID auctionId,
             @Valid @RequestBody CreateOrderDTO dto,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -33,7 +33,7 @@ public class OrderController {
 
     @PostMapping("/{orderId}/ship")
     public ApiResponse<OrderResponseDTO> ship(
-            @PathVariable UUID orderId,
+            @PathVariable("orderId") UUID orderId,
             @Valid @RequestBody ShipOrderDTO dto,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -42,7 +42,7 @@ public class OrderController {
 
     @PostMapping("/{orderId}/deliver")
     public ApiResponse<OrderResponseDTO> deliver(
-            @PathVariable UUID orderId,
+            @PathVariable("orderId") UUID orderId,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return orderService.confirmDelivery(orderId, jwt.getSubject());
@@ -60,9 +60,14 @@ public class OrderController {
 
     @GetMapping("/{orderId}")
     public ApiResponse<OrderPublicResponseDTO> get(
-            @PathVariable UUID orderId,
+            @PathVariable("orderId") UUID orderId,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return orderService.get(orderId, jwt.getSubject());
+    }
+
+    @GetMapping("/admin")
+    public ApiResponse<List<OrderPublicResponseDTO>> listAllAdmin() {
+        return orderService.listAll();
     }
 }

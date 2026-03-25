@@ -94,7 +94,7 @@ public class AuthService {
         } catch (HttpClientErrorException e) {
 
             String body = e.getResponseBodyAsString();
-            String errorDescription = "Keycloak authentication error";
+            String errorDescription = "Invalid Credentials";
 
             try {
                 ObjectMapper mapper = new ObjectMapper();
@@ -108,7 +108,40 @@ public class AuthService {
             throw new KeycloakException(errorDescription);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Internal login error");
+            throw new KeycloakException("Internal login error");
+        }
+    }
+
+    public ApiResponse<LoginResponseDTO> refreshToken(String refreshToken) {
+        String tokenUrl = String.format("%s/realms/%s/protocol/openid-connect/token", keycloakUrl, realm);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("client_id", publicClientId);
+        map.add("refresh_token", refreshToken);
+        map.add("grant_type", "refresh_token");
+
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, entity, Map.class);
+            Map<String, Object> body = response.getBody();
+
+            LoginResponseDTO loginResponse = new LoginResponseDTO(
+                    (String) body.get("access_token"),
+                    (String) body.get("refresh_token"),
+                    String.valueOf(body.get("expires_in")),
+                    String.valueOf(body.get("refresh_expires_in"))
+            );
+            return ApiResponse.success(loginResponse, "Token refreshed successfully");
+
+        } catch (HttpClientErrorException e) {
+            throw new KeycloakException("Invalid or expired refresh token");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new KeycloakException("Internal token refresh error");
         }
     }
 

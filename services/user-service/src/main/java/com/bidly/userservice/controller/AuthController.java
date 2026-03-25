@@ -32,6 +32,11 @@ public class AuthController {
         return authService.login(request);
     }
 
+    @PostMapping("/refresh")
+    public ApiResponse<LoginResponseDTO> refresh(@RequestParam("refreshToken") String refreshToken) {
+        return authService.refreshToken(refreshToken);
+    }
+
     @GetMapping("/users/me")
     public ApiResponse<UserDTO> getProfile(@AuthenticationPrincipal Jwt jwt) {
         User user = userSyncService.sync(jwt);

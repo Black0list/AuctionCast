@@ -1,5 +1,6 @@
 package com.bidly.userservice.service;
 
+import com.bidly.common.exception.ResourceExistsException;
 import com.bidly.userservice.dto.RegisterUserRequestDTO;
 import jakarta.ws.rs.core.Response;
 import org.keycloak.admin.client.CreatedResponseUtil;
@@ -43,8 +44,10 @@ public class KeycloakAdminService {
         UsersResource usersResource = keycloak.realm(realm).users();
         Response response = usersResource.create(user);
 
-        if (response.getStatus() != 201) {
-            throw new RuntimeException("Failed to create user in Keycloak. Status: " + response.getStatus());
+        if (response.getStatus() == 409) {
+            throw new ResourceExistsException("Email already used");
+        } else if(response.getStatus() != 201) {
+            throw new IllegalArgumentException("Failed to create user: " + response.getStatusInfo());
         }
 
         String userId = CreatedResponseUtil.getCreatedId(response);
@@ -55,17 +58,21 @@ public class KeycloakAdminService {
     }
 
     private void assignRole(String userId, String roleName) {
-        RoleRepresentation role = keycloak.realm(realm)
-                .roles()
-                .get(roleName)
-                .toRepresentation();
+        try {
+            RoleRepresentation role = keycloak.realm(realm)
+                    .roles()
+                    .get(roleName)
+                    .toRepresentation();
 
-        keycloak.realm(realm)
-                .users()
-                .get(userId)
-                .roles()
-                .realmLevel()
-                .add(Collections.singletonList(role));
+            keycloak.realm(realm)
+                    .users()
+                    .get(userId)
+                    .roles()
+                    .realmLevel()
+                    .add(Collections.singletonList(role));
+        } catch (Exception e) {
+            System.err.println("Warning: Could not assign role " + roleName + " to user " + userId + ": " + e.getMessage());
+        }
     }
 
     public void updateUser(String keycloakId, String email, String firstName, String lastName, Boolean enabled) {

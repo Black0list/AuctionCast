@@ -1,6 +1,6 @@
 package com.bidly.catalogservice.dto.product;
 
-
+import com.bidly.catalogservice.entity.ProductImage;
 import com.bidly.common.dto.UserPublicDTO;
 import com.bidly.common.enums.ProductCondition;
 import com.bidly.common.enums.ProductStatus;
@@ -19,16 +19,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ProductResponseDTO {
-    private UUID id;
-    private UserPublicDTO user;
-    private String title;
-    private String description;
-    private ProductCondition condition;
-    private ProductStatus status;
-    private String categoryName;
-    private List<ProductImageDTO> imageUrls;
-    private boolean deleted;
+public class ProductImageDTO {
+    private String imageUrl;
+    boolean isCover;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

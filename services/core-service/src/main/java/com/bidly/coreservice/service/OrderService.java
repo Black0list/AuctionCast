@@ -19,6 +19,7 @@ import com.bidly.coreservice.repository.AuctionRepository;
 import com.bidly.coreservice.repository.OrderRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserClient userClient;
     private final ProductClient productClient;
+    private final WalletService walletService;
 
     @Transactional
     public ApiResponse<OrderResponseDTO> createForAuction(UUID auctionId, CreateOrderDTO dto, String buyerId) {
@@ -44,11 +46,11 @@ public class OrderService {
         }
 
         if (auction.getStatus() != AuctionStatus.ENDED) {
-            throw new IllegalStateException("Order can be created only when auction is ENDED");
+            throw new IllegalArgumentException("Order can be created only when auction is ENDED");
         }
 
         if (auction.getCurrentWinnerId() == null) {
-            throw new IllegalStateException("Auction has no winner");
+            throw new IllegalArgumentException("Auction has no winner");
         }
 
         if (!auction.getCurrentWinnerId().equals(buyerId)) {
@@ -56,7 +58,7 @@ public class OrderService {
         }
 
         if (orderRepository.findByAuctionId(auctionId).isPresent()) {
-            throw new IllegalStateException("Order already exists for this auction");
+            throw new IllegalArgumentException("Order already exists for this auction");
         }
 
         Order order = OrderMapper.toEntity(auction, buyerId, dto);
@@ -64,6 +66,32 @@ public class OrderService {
         orderRepository.save(order);
 
         return ApiResponse.success(OrderMapper.toResponseDTO(order), "Order created successfully");
+    }
+
+    @Transactional
+    public Order automatedCreateOrder(Auction auction, UserPublicDTO winner) {
+        if (orderRepository.findByAuctionId(auction.getId()).isPresent()) {
+            return orderRepository.findByAuctionId(auction.getId()).get();
+        }
+
+        Order order = Order.builder()
+                .auctionId(auction.getId())
+                .productId(auction.getProductId())
+                .sellerId(auction.getSellerId())
+                .buyerId(winner.getId())
+                .amount(auction.getCurrentPrice())
+                .shippingFullName(winner.getFirstName() + " " + winner.getLastName())
+                .shippingPhone(winner.getPhone() != null ? winner.getPhone() : "Not provided")
+                .shippingAddressLine1(winner.getAddressLine1() != null ? winner.getAddressLine1() : "TBD")
+                .shippingAddressLine2(winner.getAddressLine2())
+                .shippingCity(winner.getCity() != null ? winner.getCity() : "TBD")
+                .shippingState(winner.getState())
+                .shippingPostalCode(winner.getPostalCode() != null ? winner.getPostalCode() : "TBD")
+                .shippingCountry(winner.getCountry() != null ? winner.getCountry() : "TBD")
+                .status(OrderStatus.PENDING_SHIPMENT)
+                .build();
+
+        return orderRepository.save(order);
     }
 
     @Transactional
@@ -76,7 +104,7 @@ public class OrderService {
         }
 
         if (order.getStatus() != OrderStatus.PENDING_SHIPMENT) {
-            throw new IllegalStateException("Only PENDING_SHIPMENT orders can be shipped");
+            throw new IllegalArgumentException("Only PENDING_SHIPMENT orders can be shipped");
         }
 
         order.setCarrier(dto.getCarrier());
@@ -97,11 +125,13 @@ public class OrderService {
         }
 
         if (order.getStatus() != OrderStatus.SHIPPED) {
-            throw new IllegalStateException("Only SHIPPED orders can be marked as DELIVERED");
+            throw new IllegalArgumentException("Only SHIPPED orders can be marked as DELIVERED");
         }
 
         order.setStatus(OrderStatus.DELIVERED);
         orderRepository.save(order);
+
+        walletService.addFunds(order.getSellerId(), order.getAmount());
 
         return ApiResponse.success(OrderMapper.toResponseDTO(order), "Order delivered successfully");
     }
@@ -152,18 +182,59 @@ public class OrderService {
     }
 
     private UserPublicDTO resolveUser(String userId) {
-        ApiResponse<UserPublicDTO> res = userClient.findOne(userId);
-        if (res == null || !res.isSuccess() || res.getData() == null) {
-            throw new ResourceNotFoundException("User not found");
+        try {
+            ApiResponse<UserPublicDTO> res = userClient.findOne(userId);
+            if (res != null && res.isSuccess() && res.getData() != null) {
+                return res.getData();
+            }
+        } catch (Exception e) {
+            // Log and return placeholder
         }
-        return res.getData();
+        return UserPublicDTO.builder()
+                .id(userId)
+                .firstName("Deleted")
+                .lastName("User")
+                .build();
     }
 
     private ProductPublicDTO resolveProduct(UUID productId) {
-        ApiResponse<ProductPublicDTO> res = productClient.findProduct(productId);
-        if (res == null || !res.isSuccess() || res.getData() == null) {
-            throw new ResourceNotFoundException("Product not found");
+        try {
+            ApiResponse<ProductPublicDTO> res = productClient.findProduct(productId);
+            if (res != null && res.isSuccess() && res.getData() != null) {
+                return res.getData();
+            }
+        } catch (Exception e) {
+            // Log and return placeholder
         }
+        return ProductPublicDTO.builder()
+                .id(productId)
+                .title("Deleted Product")
+                .build();
+    }
+
+    public ApiResponse<List<OrderPublicResponseDTO>> listAll() {
+        List<Order> orders = orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        List<OrderPublicResponseDTO> dtos = orders.stream()
+                .map(o -> {
+                    UserPublicDTO seller = resolveUser(o.getSellerId());
+                    UserPublicDTO buyer = resolveUser(o.getBuyerId());
+                    ProductPublicDTO product = resolveProduct(o.getProductId());
+                    return OrderMapper.toResponseDTOPublic(o, seller, buyer, product);
+                })
+                .toList();
+        return ApiResponse.success(dtos, "All orders retrieved successfully");
+    }
+
+    public UserPublicDTO resolveUserStrict(String userId) {
+        if (userId == null)
+            return null;
+
+        ApiResponse<UserPublicDTO> res = userClient.findOne(userId);
+
+        if (res == null || !res.isSuccess() || res.getData() == null) {
+            throw new ResourceNotFoundException("User not found: " + userId);
+        }
+
         return res.getData();
     }
 }
