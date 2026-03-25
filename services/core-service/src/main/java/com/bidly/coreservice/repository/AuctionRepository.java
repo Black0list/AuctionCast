@@ -22,4 +22,8 @@ public interface AuctionRepository extends JpaRepository<Auction, UUID> {
     List<Auction> findByStatusAndStartsAtLessThanEqualAndDeletedFalse(AuctionStatus status, Instant now);
 
     List<Auction> findByStatusAndEndsAtLessThanEqualAndDeletedFalse(AuctionStatus status, Instant now);
+
+    long countByStatusAndDeletedFalse(AuctionStatus status);
+
+    void deleteBySellerId(String sellerId);
 }

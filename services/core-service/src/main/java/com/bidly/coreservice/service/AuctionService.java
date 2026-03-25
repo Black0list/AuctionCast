@@ -4,9 +4,11 @@ import com.bidly.common.dto.ApiResponse;
 import com.bidly.common.dto.ProductPublicDTO;
 import com.bidly.common.dto.UserPublicDTO;
 import com.bidly.common.enums.AuctionStatus;
+import com.bidly.common.enums.ProductStatus;
 import com.bidly.common.exception.ResourceNotFoundException;
 import com.bidly.coreservice.client.ProductClient;
 import com.bidly.coreservice.client.UserClient;
+import com.bidly.coreservice.dto.DashboardStatsDTO;
 import com.bidly.coreservice.dto.auction.AuctionResponseDTO;
 import com.bidly.coreservice.dto.auction.CreateAuctionDTO;
 import com.bidly.coreservice.dto.auction.ScheduleAuctionDTO;
@@ -14,24 +16,30 @@ import com.bidly.coreservice.dto.auction.UpdateAuctionDTO;
 import com.bidly.coreservice.entity.Auction;
 import com.bidly.coreservice.mapper.AuctionMapper;
 import com.bidly.coreservice.repository.AuctionRepository;
+import com.bidly.coreservice.repository.OrderRepository;
 import com.bidly.coreservice.util.Util;
 import feign.FeignException;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @AllArgsConstructor
 @Service
 public class AuctionService {
 
     private final AuctionRepository auctionRepository;
+    private final OrderRepository orderRepository;
     private final UserClient userClient;
     private final ProductClient productClient;
+    private final AuctionProcessor auctionProcessor;
 
     @Transactional
     public ApiResponse<AuctionResponseDTO> create(CreateAuctionDTO dto, String sellerId) {
@@ -60,10 +68,16 @@ public class AuctionService {
         UserPublicDTO sellerDto = Util.getUserDto();
         ProductPublicDTO productDto = productClient.findProduct(auction.getProductId()).getData();
 
+        if (productDto.getStatus() != ProductStatus.ACTIVE &&
+            productDto.getStatus() != ProductStatus.UNSOLD) {
+            throw new IllegalArgumentException("Auction can only be created for ACTIVE or UNSOLD products");
+        }
+
+        productClient.updateStatus(auction.getProductId(), ProductStatus.IN_AUCTION);
+
         return ApiResponse.success(
                 AuctionMapper.toResponseDto(auction, sellerDto, null, productDto),
-                "Auction created successfully"
-        );
+                "Auction created successfully");
     }
 
     @Transactional
@@ -94,8 +108,7 @@ public class AuctionService {
 
         return ApiResponse.success(
                 AuctionMapper.toResponseDto(auction, sellerDto, null, productDto),
-                "Auction updated successfully"
-        );
+                "Auction updated successfully");
     }
 
     @Transactional
@@ -125,8 +138,7 @@ public class AuctionService {
 
         return ApiResponse.success(
                 AuctionMapper.toResponseDto(auction, sellerDto, null, productDto),
-                "Auction scheduled successfully"
-        );
+                "Auction scheduled successfully");
     }
 
     @Transactional
@@ -157,15 +169,16 @@ public class AuctionService {
         }
 
         auctionRepository.save(auction);
+        productClient.updateStatus(auction.getProductId(), ProductStatus.IN_AUCTION);
 
         UserPublicDTO sellerDto = Util.getUserDto();
-        UserPublicDTO winnerDto = auction.getCurrentWinnerId() == null ? null : resolveUserPublic(auction.getCurrentWinnerId(), sellerId, sellerDto);
+        UserPublicDTO winnerDto = auction.getCurrentWinnerId() == null ? null
+                : resolveUserGraceful(auction.getCurrentWinnerId(), sellerId, sellerDto);
         ProductPublicDTO productDto = productClient.findProduct(auction.getProductId()).getData();
 
         return ApiResponse.success(
                 AuctionMapper.toResponseDto(auction, sellerDto, winnerDto, productDto),
-                "Auction published successfully"
-        );
+                "Auction published successfully");
     }
 
     @Transactional
@@ -184,15 +197,17 @@ public class AuctionService {
 
         auction.setStatus(AuctionStatus.CANCELLED);
         auctionRepository.save(auction);
+        productClient.updateStatus(auction.getProductId(), ProductStatus.UNSOLD);
+
 
         UserPublicDTO sellerDto = Util.getUserDto();
-        UserPublicDTO winnerDto = auction.getCurrentWinnerId() == null ? null : resolveUserPublic(auction.getCurrentWinnerId(), sellerId, sellerDto);
+        UserPublicDTO winnerDto = auction.getCurrentWinnerId() == null ? null
+                : resolveUserGraceful(auction.getCurrentWinnerId(), sellerId, sellerDto);
         ProductPublicDTO productDto = productClient.findProduct(auction.getProductId()).getData();
 
         return ApiResponse.success(
                 AuctionMapper.toResponseDto(auction, sellerDto, winnerDto, productDto),
-                "Auction cancelled successfully"
-        );
+                "Auction cancelled successfully");
     }
 
     @Transactional
@@ -205,18 +220,17 @@ public class AuctionService {
             throw new IllegalArgumentException("Only ACTIVE auctions can be ended");
         }
 
-        auction.setStatus(AuctionStatus.ENDED);
-        auction.setEndsAt(Instant.now());
-        auctionRepository.save(auction);
+        auctionProcessor.processEndAuction(auction.getId());
 
         UserPublicDTO sellerDto = Util.getUserDto();
-        UserPublicDTO winnerDto = auction.getCurrentWinnerId() == null ? null : resolveUserPublic(auction.getCurrentWinnerId(), sellerId, sellerDto);
+
+        UserPublicDTO winnerDto = auction.getCurrentWinnerId() == null ? null
+                : resolveUserGraceful(auction.getCurrentWinnerId(), sellerId, sellerDto);
         ProductPublicDTO productDto = productClient.findProduct(auction.getProductId()).getData();
 
         return ApiResponse.success(
                 AuctionMapper.toResponseDto(auction, sellerDto, winnerDto, productDto),
-                "Auction ended successfully"
-        );
+                "Auction ended successfully");
     }
 
     public ApiResponse<AuctionResponseDTO> get(UUID auctionId, String requesterId) {
@@ -229,30 +243,38 @@ public class AuctionService {
 
         UserPublicDTO requesterDto = Util.getUserDto();
 
-        UserPublicDTO sellerDto = resolveUserPublic(auction.getSellerId(), requesterId, requesterDto);
-        UserPublicDTO winnerDto = auction.getCurrentWinnerId() == null ? null : resolveUserPublic(auction.getCurrentWinnerId(), requesterId, requesterDto);
-        ProductPublicDTO productDto = productClient.findProduct(auction.getProductId()).getData();
+        UserPublicDTO sellerDto = resolveUserGraceful(auction.getSellerId(), requesterId, requesterDto);
+        UserPublicDTO winnerDto = auction.getCurrentWinnerId() == null ? null
+                : resolveUserGraceful(auction.getCurrentWinnerId(), requesterId, requesterDto);
+
+        ProductPublicDTO productDto = null;
+        try {
+            productDto = productClient.findProduct(auction.getProductId()).getData();
+        } catch (Exception e) {
+            log.warn("Could not resolve product {} for auction {}", auction.getProductId(), auction.getId());
+        }
 
         return ApiResponse.success(
                 AuctionMapper.toResponseDto(auction, sellerDto, winnerDto, productDto),
-                "Auction retrieved successfully"
-        );
+                "Auction retrieved successfully");
     }
 
     public ApiResponse<List<AuctionResponseDTO>> listActive(String requesterId) {
         List<Auction> auctions = auctionRepository.findByStatusAndDeletedFalse(AuctionStatus.ACTIVE);
 
-        if (auctions.isEmpty()) {
-            throw new ResourceNotFoundException("No active auctions found");
-        }
-
         UserPublicDTO requesterDto = Util.getUserDto();
 
         List<AuctionResponseDTO> dtos = auctions.stream()
                 .map(a -> {
-                    UserPublicDTO sellerDto = resolveUserPublic(a.getSellerId(), requesterId, requesterDto);
-                    UserPublicDTO winnerDto = a.getCurrentWinnerId() == null ? null : resolveUserPublic(a.getCurrentWinnerId(), requesterId, requesterDto);
-                    ProductPublicDTO productDto = productClient.findProduct(a.getProductId()).getData();
+                    UserPublicDTO sellerDto = resolveUserGraceful(a.getSellerId(), requesterId, requesterDto);
+                    UserPublicDTO winnerDto = a.getCurrentWinnerId() == null ? null
+                            : resolveUserGraceful(a.getCurrentWinnerId(), requesterId, requesterDto);
+                    ProductPublicDTO productDto = null;
+                    try {
+                        productDto = productClient.findProduct(a.getProductId()).getData();
+                    } catch (Exception e) {
+                        log.warn("Could not resolve product {} for auction {}", a.getProductId(), a.getId());
+                    }
                     return AuctionMapper.toResponseDto(a, sellerDto, winnerDto, productDto);
                 })
                 .toList();
@@ -265,54 +287,101 @@ public class AuctionService {
 
         List<Auction> auctions = auctionRepository.findBySellerIdAndDeletedFalse(sellerId);
 
-        if (auctions.isEmpty()) {
-            throw new ResourceNotFoundException("No auctions found");
-        }
-
         UserPublicDTO sellerDto = Util.getUserDto();
 
         List<AuctionResponseDTO> dtos = auctions.stream()
                 .map(a -> {
-                    UserPublicDTO winnerDto = a.getCurrentWinnerId() == null ? null : resolveUserPublic(a.getCurrentWinnerId(), sellerId, sellerDto);
-                    ProductPublicDTO productDto = productClient.findProduct(a.getProductId()).getData();
+                    UserPublicDTO winnerDto = a.getCurrentWinnerId() == null ? null
+                            : resolveUserGraceful(a.getCurrentWinnerId(), sellerId, sellerDto);
+                    ProductPublicDTO productDto = null;
+                    try {
+                        productDto = productClient.findProduct(a.getProductId()).getData();
+                    } catch (Exception e) {
+                        log.warn("Could not resolve product {} for auction {}", a.getProductId(), a.getId());
+                    }
                     return AuctionMapper.toResponseDto(a, sellerDto, winnerDto, productDto);
+
                 })
                 .toList();
 
         return ApiResponse.success(dtos, "My auctions retrieved successfully");
     }
 
-    @Transactional
+    public ApiResponse<List<AuctionResponseDTO>> listAll() {
+        List<Auction> auctions = auctionRepository.findAll();
+
+        List<AuctionResponseDTO> dtos = auctions.stream()
+                .map(a -> {
+                    UserPublicDTO sellerDto = resolveUserGraceful(a.getSellerId(), null, null);
+                    UserPublicDTO winnerDto = a.getCurrentWinnerId() == null ? null
+                            : resolveUserGraceful(a.getCurrentWinnerId(), null, null);
+                    ProductPublicDTO productDto = null;
+                    try {
+                        productDto = productClient.findProduct(a.getProductId()).getData();
+                    } catch (Exception e) {
+                        log.warn("Could not resolve product {} for auction {}", a.getProductId(), a.getId());
+                    }
+                    return AuctionMapper.toResponseDto(a, sellerDto, winnerDto, productDto);
+                })
+                .toList();
+
+        return ApiResponse.success(dtos, "All auctions retrieved successfully");
+    }
+
+    public ApiResponse<DashboardStatsDTO> getDashboardStats() {
+        long totalUsers = 0;
+        long activeProducts = 0;
+
+        try {
+            totalUsers = userClient.countUsers().getData();
+        } catch (Exception e) {
+            log.error("Error fetching user count", e);
+        }
+
+        try {
+            activeProducts = productClient.countActiveProducts().getData();
+        } catch (Exception e) {
+            log.error("Error fetching product count", e);
+        }
+
+        long ongoingAuctions = auctionRepository.countByStatusAndDeletedFalse(AuctionStatus.ACTIVE);
+        BigDecimal totalRevenue = orderRepository.sumTotalRevenue();
+
+        DashboardStatsDTO stats = DashboardStatsDTO.builder()
+                .totalUsers(totalUsers)
+                .activeProducts(activeProducts)
+                .ongoingAuctions(ongoingAuctions)
+                .totalRevenue(totalRevenue)
+                .build();
+
+        return ApiResponse.success(stats, "Dashboard statistics retrieved successfully");
+    }
+
     public void activateScheduledAuctions() {
         Instant now = Instant.now();
-        List<Auction> auctions = auctionRepository.findByStatusAndStartsAtLessThanEqualAndDeletedFalse(AuctionStatus.SCHEDULED, now);
+        List<Auction> auctions = auctionRepository
+                .findByStatusAndStartsAtLessThanEqualAndDeletedFalse(AuctionStatus.SCHEDULED, now);
 
         for (Auction auction : auctions) {
-            if (auction.getEndsAt() != null) {
-                if (auction.getEndsAt().isAfter(now)) {
-                    auction.setStatus(AuctionStatus.ACTIVE);
-                    if (auction.getStartsAt() == null) {
-                        auction.setStartsAt(now);
-                    }
-                    if (auction.getCurrentPrice() == null) {
-                        auction.setCurrentPrice(auction.getStartPrice());
-                    }
-                } else {
-                   auction.setStatus(AuctionStatus.ENDED);
-                }
-                auctionRepository.save(auction);
+            try {
+                auctionProcessor.processScheduledAuction(auction.getId());
+            } catch (Exception e) {
+                log.error("Failed to activate auction {}: {}", auction.getId(), e.getMessage());
             }
         }
     }
 
-    @Transactional
     public void endExpiredAuctions() {
         Instant now = Instant.now();
-        List<Auction> auctions = auctionRepository.findByStatusAndEndsAtLessThanEqualAndDeletedFalse(AuctionStatus.ACTIVE, now);
+        List<Auction> auctions = auctionRepository
+                .findByStatusAndEndsAtLessThanEqualAndDeletedFalse(AuctionStatus.ACTIVE, now);
 
         for (Auction auction : auctions) {
-            auction.setStatus(AuctionStatus.ENDED);
-            auctionRepository.save(auction);
+            try {
+                auctionProcessor.processEndAuction(auction.getId());
+            } catch (Exception e) {
+                log.error("Failed to end auction {}: {}", auction.getId(), e.getMessage());
+            }
         }
     }
 
@@ -381,16 +450,25 @@ public class AuctionService {
         }
     }
 
-    private UserPublicDTO resolveUserPublic(String userId, String requesterId, UserPublicDTO requesterDto) {
-        if (userId == null) return null;
-        if (userId.equals(requesterId)) return requesterDto;
+    private UserPublicDTO resolveUserGraceful(String userId, String requesterId, UserPublicDTO requesterDto) {
+        if (userId == null)
+            return null;
+        if (userId.equals(requesterId))
+            return requesterDto;
 
-        ApiResponse<UserPublicDTO> res = userClient.findOne(userId);
-
-        if (res == null || !res.isSuccess() || res.getData() == null) {
-            throw new ResourceNotFoundException("User not found");
+        try {
+            ApiResponse<UserPublicDTO> res = userClient.findOne(userId);
+            if (res != null && res.isSuccess() && res.getData() != null) {
+                return res.getData();
+            }
+        } catch (Exception e) {
+            log.warn("Could not resolve user profile for userId: {}. Using placeholder.", userId);
         }
 
-        return res.getData();
+        return UserPublicDTO.builder()
+                .id(userId)
+                .firstName("Deleted")
+                .lastName("User")
+                .build();
     }
 }

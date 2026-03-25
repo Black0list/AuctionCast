@@ -46,10 +46,16 @@ public class FileStorageService {
             return;
         }
 
-        try {
-            String relativePath = photoPath.replace("/uploads/", "");
+        if (photoPath.startsWith("http")) {
+            return;
+        }
 
-            Path filePath = root.resolve(relativePath);
+        try {
+            Path filePath = root.resolve(photoPath).normalize();
+
+            if (!filePath.startsWith(root)) {
+                return;
+            }
 
             Files.deleteIfExists(filePath);
         } catch (IOException e) {

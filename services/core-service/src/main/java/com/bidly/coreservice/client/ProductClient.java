@@ -17,4 +17,13 @@ public interface ProductClient {
 
     @GetMapping("/products/{productId}/isProductOwner/{userId}")
     ApiResponse<Boolean> isProductOwner(@PathVariable("productId") UUID productId, @PathVariable("userId") String userId);
+
+    @GetMapping("/products/count/active")
+    ApiResponse<Long> countActiveProducts();
+
+    @org.springframework.web.bind.annotation.PutMapping("/products/{productId}/status/{status}")
+    ApiResponse<Object> updateStatus(
+            @PathVariable("productId") UUID productId,
+            @PathVariable("status") com.bidly.common.enums.ProductStatus status
+    );
 }

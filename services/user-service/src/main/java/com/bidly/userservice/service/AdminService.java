@@ -5,6 +5,8 @@ import com.bidly.common.dto.ApiResponse;
 import com.bidly.common.enums.SellerStatus;
 import com.bidly.common.exception.ResourceNotFoundException;
 import com.bidly.userservice.cache.UserCacheWriter;
+import com.bidly.userservice.client.CatalogClient;
+import com.bidly.userservice.client.CoreClient;
 import com.bidly.userservice.dto.UserAdminUpdateDTO;
 import com.bidly.userservice.dto.UserDTO;
 import com.bidly.userservice.entity.User;
@@ -25,12 +27,11 @@ public class AdminService {
     private final FileStorageService fileStorageService;
     private final UserCacheWriter userCacheWriter;
     private final KeycloakAdminService keycloakAdminService;
+    private final CatalogClient catalogClient;
+    private final CoreClient coreClient;
 
     public ApiResponse<List<UserDTO>> listUsers() {
         List<UserDTO> users = userRepository.findAll().stream().map(UserMapper::toDto).toList();
-        if (users.isEmpty()) {
-            throw new ResourceNotFoundException("No users found");
-        }
         return ApiResponse.success(users, "Users retrieved successfully");
     }
 
@@ -73,6 +74,9 @@ public class AdminService {
             }
 
             try {
+                catalogClient.deleteUserProducts(user.getKeycloakId());
+                coreClient.deleteUserData(user.getKeycloakId());
+
                 userRepository.delete(user);
 
                 keycloakAdminService.deleteUser(user.getKeycloakId());
@@ -94,5 +98,51 @@ public class AdminService {
             userCacheWriter.putPublicProfile(user);
             return ApiResponse.success(null, "User account successfully deactivated (soft delete)");
         }
+    }
+
+    public ApiResponse<Void> approveSeller(String id) {
+        User user = userRepository.findByKeycloakId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getSellerStatus() != SellerStatus.PENDING) {
+            throw new IllegalArgumentException("User does not have a pending seller application");
+        }
+
+        user.setSellerStatus(SellerStatus.APPROVED);
+        userRepository.save(user);
+        userCacheWriter.putPublicProfile(user);
+
+        return ApiResponse.success(null, "Seller application approved successfully");
+    }
+
+    public ApiResponse<Void> rejectSeller(String id) {
+        User user = userRepository.findByKeycloakId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getSellerStatus() != SellerStatus.PENDING) {
+            throw new IllegalArgumentException("User does not have a pending seller application");
+        }
+
+        user.setSellerStatus(SellerStatus.REJECTED);
+        userRepository.save(user);
+        userCacheWriter.putPublicProfile(user);
+
+        return ApiResponse.success(null, "Seller application rejected successfully");
+    }
+
+    public ApiResponse<Long> countAllUsers() {
+        return ApiResponse.success(userRepository.count(), "Total users counted");
+    }
+
+    public ApiResponse<Void> updateUserStatus(String id, boolean isActive) {
+        User user = userRepository.findByKeycloakId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        user.setActive(isActive);
+        keycloakAdminService.updateUser(user.getKeycloakId(), null, null, null, isActive);
+        userRepository.save(user);
+        userCacheWriter.putPublicProfile(user);
+
+        return ApiResponse.success(null, "User status updated successfully");
     }
 }

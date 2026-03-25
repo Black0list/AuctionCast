@@ -22,7 +22,7 @@ public class ProductMapper {
                 .status(product.getStatus())
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .imageUrls(product.getImages().stream()
-                        .map(ProductImage::getImageUrl)
+                        .map(ProductImageMapper::toDto)
                         .collect(Collectors.toList()))
                 .deleted(product.isDeleted())
                 .createdAt(product.getCreatedAt())

@@ -59,6 +59,16 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(jakarta.ws.rs.WebApplicationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleWebApplicationException(jakarta.ws.rs.WebApplicationException ex) {
+        HttpStatus status = HttpStatus.resolve(ex.getResponse().getStatus());
+        if (status == null) status = HttpStatus.INTERNAL_SERVER_ERROR;
+        
+        return ResponseEntity
+                .status(status)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
 
     // ---------- DB CONSTRAINTS ----------
     @ExceptionHandler(DataIntegrityViolationException.class)

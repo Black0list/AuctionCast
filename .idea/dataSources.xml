@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="user-service_db@localhost" uuid="a70a13a7-02c3-4db2-824e-2d7e9b30a612">
+    <data-source source="LOCAL" name="user-service@localhost" uuid="8bd79c00-365f-44ab-a41d-0c1c199c7f3c">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
@@ -13,7 +13,7 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="catalog-service_db@localhost" uuid="f3b5c6bd-a690-416b-acfc-3d321741d140">
+    <data-source source="LOCAL" name="catalog-service_db@localhost" uuid="ef2be247-19b8-4605-ab38-09b124da57b8">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
@@ -25,7 +25,7 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="core-service_db@localhost" uuid="35d48fad-4341-4b2e-bad5-2625ed437909">
+    <data-source source="LOCAL" name="core-service_db@localhost" uuid="6367bc08-ad6f-464a-8b11-031d29a60654">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>

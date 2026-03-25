@@ -23,6 +23,12 @@ public class UserMapper {
                 .phone(user.getPhone())
                 .isActive(user.isActive())
                 .sellerStatus(user.getSellerStatus())
+                .addressLine1(user.getAddressLine1())
+                .addressLine2(user.getAddressLine2())
+                .city(user.getCity())
+                .state(user.getState())
+                .postalCode(user.getPostalCode())
+                .country(user.getCountry())
                 .lastLoginAt(user.getLastLoginAt())
                 .build();
     }
@@ -53,6 +59,24 @@ public class UserMapper {
         }
         if (updateDto.getPhone() != null) {
             user.setPhone(updateDto.getPhone());
+        }
+        if (updateDto.getAddressLine1() != null) {
+            user.setAddressLine1(updateDto.getAddressLine1());
+        }
+        if (updateDto.getAddressLine2() != null) {
+            user.setAddressLine2(updateDto.getAddressLine2());
+        }
+        if (updateDto.getCity() != null) {
+            user.setCity(updateDto.getCity());
+        }
+        if (updateDto.getState() != null) {
+            user.setState(updateDto.getState());
+        }
+        if (updateDto.getPostalCode() != null) {
+            user.setPostalCode(updateDto.getPostalCode());
+        }
+        if (updateDto.getCountry() != null) {
+            user.setCountry(updateDto.getCountry());
         }
         return user;
     }
@@ -85,6 +109,14 @@ public class UserMapper {
                 .id(user.getKeycloakId())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
+                .phone(user.getPhone())
+                .photo(user.getPhoto())
+                .addressLine1(user.getAddressLine1())
+                .addressLine2(user.getAddressLine2())
+                .city(user.getCity())
+                .state(user.getState())
+                .postalCode(user.getPostalCode())
+                .country(user.getCountry())
                 .build();
     }
 }

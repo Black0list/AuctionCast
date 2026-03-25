@@ -13,4 +13,6 @@ public interface WalletHoldRepository extends JpaRepository<WalletHold, UUID> {
     Optional<WalletHold> findByAuctionIdAndUserId(UUID auctionId, String userId);
 
     long deleteByAuctionIdAndUserId(UUID auctionId, String userId);
+
+    void deleteByUserId(String userId);
 }

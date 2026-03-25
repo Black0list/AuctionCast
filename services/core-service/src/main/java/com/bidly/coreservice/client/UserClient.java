@@ -18,4 +18,7 @@ public interface UserClient {
 
     @GetMapping("/users/{userId}")
     ApiResponse<UserPublicDTO> findOne(@PathVariable("userId") String userId);
+
+    @GetMapping("/admin/users/count")
+    ApiResponse<Long> countUsers();
 }
