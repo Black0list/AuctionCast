@@ -23,6 +23,9 @@ jobs:
         ports:
           - 6379:6379
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       - uses: actions/checkout@v4
 
@@ -44,14 +47,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set Repository Name to Lowercase
+        run: |
+          echo "REPO_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Build and Push Business Services
         if: github.event_name != 'pull_request'
         run: |
           services=("user-service" "catalog-service" "core-service")
           for service in "${services[@]}"; do
             echo "Building $service..."
-            docker build -t ghcr.io/${{ github.repository }}/$service:latest ./services/$service
-            docker push ghcr.io/${{ github.repository }}/$service:latest
+            docker build -t ghcr.io/${{ env.REPO_LOWER }}/$service:latest ./services/$service
+            docker push ghcr.io/${{ env.REPO_LOWER }}/$service:latest
           done
 
       - name: Build and Push Infrastructure Services
@@ -60,6 +67,6 @@ jobs:
           infra_services=("eureka-server" "api-gateway" "config-server")
           for service in "${infra_services[@]}"; do
             echo "Building $service..."
-            docker build -t ghcr.io/${{ github.repository }}/$service:latest ./infrastructure/$service
-            docker push ghcr.io/${{ github.repository }}/$service:latest
+            docker build -t ghcr.io/${{ env.REPO_LOWER }}/$service:latest ./infrastructure/$service
+            docker push ghcr.io/${{ env.REPO_LOWER }}/$service:latest
           done
