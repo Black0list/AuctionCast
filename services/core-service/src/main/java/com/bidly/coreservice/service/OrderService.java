@@ -19,6 +19,7 @@ import com.bidly.coreservice.repository.AuctionRepository;
 import com.bidly.coreservice.repository.OrderRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserClient userClient;
     private final ProductClient productClient;
+    private final WalletService walletService;
 
     @Transactional
     public ApiResponse<OrderResponseDTO> createForAuction(UUID auctionId, CreateOrderDTO dto, String buyerId) {
@@ -64,6 +66,32 @@ public class OrderService {
         orderRepository.save(order);
 
         return ApiResponse.success(OrderMapper.toResponseDTO(order), "Order created successfully");
+    }
+
+    @Transactional
+    public Order automatedCreateOrder(Auction auction, UserPublicDTO winner) {
+        if (orderRepository.findByAuctionId(auction.getId()).isPresent()) {
+            return orderRepository.findByAuctionId(auction.getId()).get();
+        }
+
+        Order order = Order.builder()
+                .auctionId(auction.getId())
+                .productId(auction.getProductId())
+                .sellerId(auction.getSellerId())
+                .buyerId(winner.getId())
+                .amount(auction.getCurrentPrice())
+                .shippingFullName(winner.getFirstName() + " " + winner.getLastName())
+                .shippingPhone(winner.getPhone() != null ? winner.getPhone() : "Not provided")
+                .shippingAddressLine1(winner.getAddressLine1() != null ? winner.getAddressLine1() : "TBD")
+                .shippingAddressLine2(winner.getAddressLine2())
+                .shippingCity(winner.getCity() != null ? winner.getCity() : "TBD")
+                .shippingState(winner.getState())
+                .shippingPostalCode(winner.getPostalCode() != null ? winner.getPostalCode() : "TBD")
+                .shippingCountry(winner.getCountry() != null ? winner.getCountry() : "TBD")
+                .status(OrderStatus.PENDING_SHIPMENT)
+                .build();
+
+        return orderRepository.save(order);
     }
 
     @Transactional
@@ -102,6 +130,8 @@ public class OrderService {
 
         order.setStatus(OrderStatus.DELIVERED);
         orderRepository.save(order);
+
+        walletService.addFunds(order.getSellerId(), order.getAmount());
 
         return ApiResponse.success(OrderMapper.toResponseDTO(order), "Order delivered successfully");
     }
@@ -152,18 +182,59 @@ public class OrderService {
     }
 
     private UserPublicDTO resolveUser(String userId) {
-        ApiResponse<UserPublicDTO> res = userClient.findOne(userId);
-        if (res == null || !res.isSuccess() || res.getData() == null) {
-            throw new ResourceNotFoundException("User not found");
+        try {
+            ApiResponse<UserPublicDTO> res = userClient.findOne(userId);
+            if (res != null && res.isSuccess() && res.getData() != null) {
+                return res.getData();
+            }
+        } catch (Exception e) {
+            // Log and return placeholder
         }
-        return res.getData();
+        return UserPublicDTO.builder()
+                .id(userId)
+                .firstName("Deleted")
+                .lastName("User")
+                .build();
     }
 
     private ProductPublicDTO resolveProduct(UUID productId) {
-        ApiResponse<ProductPublicDTO> res = productClient.findProduct(productId);
-        if (res == null || !res.isSuccess() || res.getData() == null) {
-            throw new ResourceNotFoundException("Product not found");
+        try {
+            ApiResponse<ProductPublicDTO> res = productClient.findProduct(productId);
+            if (res != null && res.isSuccess() && res.getData() != null) {
+                return res.getData();
+            }
+        } catch (Exception e) {
+            // Log and return placeholder
         }
+        return ProductPublicDTO.builder()
+                .id(productId)
+                .title("Deleted Product")
+                .build();
+    }
+
+    public ApiResponse<List<OrderPublicResponseDTO>> listAll() {
+        List<Order> orders = orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        List<OrderPublicResponseDTO> dtos = orders.stream()
+                .map(o -> {
+                    UserPublicDTO seller = resolveUser(o.getSellerId());
+                    UserPublicDTO buyer = resolveUser(o.getBuyerId());
+                    ProductPublicDTO product = resolveProduct(o.getProductId());
+                    return OrderMapper.toResponseDTOPublic(o, seller, buyer, product);
+                })
+                .toList();
+        return ApiResponse.success(dtos, "All orders retrieved successfully");
+    }
+
+    public UserPublicDTO resolveUserStrict(String userId) {
+        if (userId == null)
+            return null;
+
+        ApiResponse<UserPublicDTO> res = userClient.findOne(userId);
+
+        if (res == null || !res.isSuccess() || res.getData() == null) {
+            throw new ResourceNotFoundException("User not found: " + userId);
+        }
+
         return res.getData();
     }
 }
