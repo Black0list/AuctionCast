@@ -26,7 +26,7 @@ public class OrderPublicResponseDTO {
 
     private String shippingFullName;
     private String shippingPhone;
-    private String shippingAddressLine1;
+    private String shippingAddress;
     private String shippingAddressLine2;
     private String shippingCity;
     private String shippingState;
