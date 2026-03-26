@@ -100,7 +100,6 @@ public class ProductController {
     }
 
     @PutMapping("/{id}/status/{status}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<ProductResponseDTO> updateStatus(@PathVariable("id") UUID id, @PathVariable("status") com.bidly.common.enums.ProductStatus status) {
         return productService.updateStatus(id, status);
     }

@@ -22,10 +22,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -81,7 +79,7 @@ public class AuthService {
 
         try {
             ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, entity, Map.class);
-            Map<String, Object> body = response.getBody();
+            Map body = response.getBody();
 
             LoginResponseDTO loginResponse = new LoginResponseDTO(
                     (String) body.get("access_token"),

@@ -13,7 +13,9 @@ public class Util {
                 .getContext()
                 .getAuthentication();
 
-        Jwt jwt = (Jwt) authentication.getPrincipal();
+        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
+            return null;
+        }
 
         return UserPublicDTO.builder()
                 .id(jwt.getSubject())

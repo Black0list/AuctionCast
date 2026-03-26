@@ -16,6 +16,7 @@ import java.util.UUID;
 
 @AllArgsConstructor
 @Service
+@Slf4j
 public class AuctionProcessor {
 
     private final AuctionRepository auctionRepository;
@@ -26,9 +27,14 @@ public class AuctionProcessor {
     @Transactional
     public void processScheduledAuction(UUID auctionId) {
         Auction auction = auctionRepository.findById(auctionId).orElseThrow();
+        if (auction.getStatus() != AuctionStatus.SCHEDULED) {
+            return;
+        }
+
         Instant now = Instant.now();
         if (auction.getEndsAt() != null) {
             if (auction.getEndsAt().isAfter(now)) {
+                log.info("Activating auction {}", auctionId);
                 auction.setStatus(AuctionStatus.ACTIVE);
                 if (auction.getStartsAt() == null) {
                     auction.setStartsAt(now);
@@ -36,17 +42,14 @@ public class AuctionProcessor {
                 if (auction.getCurrentPrice() == null) {
                     auction.setCurrentPrice(auction.getStartPrice());
                 }
-                productClient.updateStatus(auction.getProductId(), ProductStatus.IN_AUCTION);
-            } else {
-                auction.setStatus(AuctionStatus.ENDED);
-                if (auction.getCurrentWinnerId() != null) {
-                    UserPublicDTO winner = orderService.resolveUserStrict(auction.getCurrentWinnerId());
-                    orderService.automatedCreateOrder(auction, winner);
-                    walletReservationService.chargeReservedFunds(winner.getId(), auction.getCurrentPrice());
-                    productClient.updateStatus(auction.getProductId(), ProductStatus.SOLD);
-                } else {
-                    productClient.updateStatus(auction.getProductId(), ProductStatus.UNSOLD);
+                try {
+                    productClient.updateStatus(auction.getProductId(), ProductStatus.IN_AUCTION);
+                } catch (Exception e) {
+                    log.error("Failed to update product status for auction {}: {}", auctionId, e.getMessage());
                 }
+            } else {
+                log.info("Auction {} expired before activation, ending now", auctionId);
+                finalizeAuction(auction);
             }
             auctionRepository.save(auction);
         }
@@ -55,15 +58,34 @@ public class AuctionProcessor {
     @Transactional
     public void processEndAuction(UUID auctionId) {
         Auction auction = auctionRepository.findById(auctionId).orElseThrow();
-        if (auction.getCurrentWinnerId() != null) {
-            UserPublicDTO winner = orderService.resolveUserStrict(auction.getCurrentWinnerId());
-            orderService.automatedCreateOrder(auction, winner);
-            walletReservationService.chargeReservedFunds(winner.getId(), auction.getCurrentPrice());
-            productClient.updateStatus(auction.getProductId(), ProductStatus.SOLD);
-        } else {
-            productClient.updateStatus(auction.getProductId(), ProductStatus.UNSOLD);
+        if (auction.getStatus() == AuctionStatus.ENDED) {
+            return;
         }
-        auction.setStatus(AuctionStatus.ENDED);
+
+        log.info("Ending auction {}", auctionId);
+        finalizeAuction(auction);
         auctionRepository.save(auction);
+    }
+
+    private void finalizeAuction(Auction auction) {
+        auction.setStatus(AuctionStatus.ENDED);
+        
+        if (auction.getCurrentWinnerId() != null) {
+            try {
+                UserPublicDTO winner = orderService.resolveUserStrict(auction.getCurrentWinnerId());
+                orderService.automatedCreateOrder(auction, winner);
+                walletReservationService.chargeReservedFunds(winner.getId(), auction.getCurrentPrice());
+                productClient.updateStatus(auction.getProductId(), ProductStatus.SOLD);
+            } catch (Exception e) {
+                log.error("Fulfillment failed for auction {}: {}. Auction is marked as ENDED but requires manual intervention.", 
+                        auction.getId(), e.getMessage());
+            }
+        } else {
+            try {
+                productClient.updateStatus(auction.getProductId(), ProductStatus.UNSOLD);
+            } catch (Exception e) {
+                log.error("Failed to update product status to UNSOLD for auction {}: {}", auction.getId(), e.getMessage());
+            }
+        }
     }
 }

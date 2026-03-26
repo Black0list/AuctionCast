@@ -52,6 +52,7 @@ class AdminServiceTest {
         ApiResponse<Void> response = adminService.approveSeller(userId);
 
         assertEquals(SellerStatus.APPROVED, testUser.getSellerStatus());
+        verify(keycloakAdminService).assignRole(userId, "SELLER");
         verify(userRepository).save(testUser);
         verify(userCacheWriter).putPublicProfile(testUser);
         assertTrue(response.isSuccess());
