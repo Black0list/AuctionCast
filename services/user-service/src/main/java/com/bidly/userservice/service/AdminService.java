@@ -109,6 +109,7 @@ public class AdminService {
         }
 
         user.setSellerStatus(SellerStatus.APPROVED);
+        keycloakAdminService.assignRole(user.getKeycloakId(), "SELLER");
         userRepository.save(user);
         userCacheWriter.putPublicProfile(user);
 
