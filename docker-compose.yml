@@ -124,6 +124,86 @@ services:
     networks:
       - bidly-network
 
+  user-service:
+    build: ./services/user-service
+    container_name: user-service
+    ports:
+      - "8100:8100"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      user-service_db:
+        condition: service_started
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_SERVICE: http://eureka-server:8761/eureka/
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID}
+      KEYCLOAK_PUBLIC_CLIENT_ID: ${KEYCLOAK_PUBLIC_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_OAUTH2_ISSUER_URI: ${KEYCLOAK_OAUTH2_ISSUER_URI}
+      USER_SERVICE_DATASOURCE_URL: ${USER_SERVICE_DATASOURCE_URL}
+      USER_SERVICE_DB_USER: ${DB_USER}
+      USER_SERVICE_DB_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - bidly-network
+
+  catalog-service:
+    build: ./services/catalog-service
+    container_name: catalog-service
+    ports:
+      - "8200:8200"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      catalog-service_db:
+        condition: service_started
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_SERVICE: http://eureka-server:8761/eureka/
+      CATALOG_SERVICE_DATASOURCE_URL: ${CATALOG_SERVICE_DATASOURCE_URL}
+      CATALOG_SERVICE_DB_USER: ${DB_USER}
+      CATALOG_SERVICE_DB_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - bidly-network
+
+  core-service:
+    build: ./services/core-service
+    container_name: core-service
+    ports:
+      - "8300:8300"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      core-service_db:
+        condition: service_started
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_SERVICE: http://eureka-server:8761/eureka/
+      CORE_SERVICE_DATASOURCE_URL: ${CORE_SERVICE_DATASOURCE_URL}
+      CORE_SERVICE_DB_USER: ${DB_USER}
+      CORE_SERVICE_DB_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - bidly-network
+
+  frontend:
+    build: ../AuctionX - Angular
+    container_name: bidly-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - bidly-network
+
 networks:
   bidly-network:
     driver: bridge
+

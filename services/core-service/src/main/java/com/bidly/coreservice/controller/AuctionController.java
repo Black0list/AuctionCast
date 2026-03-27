@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +25,7 @@ public class AuctionController {
     private final AuctionService auctionService;
 
     @PostMapping
+    @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<AuctionResponseDTO> create(
             @Valid @RequestBody CreateAuctionDTO dto,
             @AuthenticationPrincipal Jwt jwt
@@ -32,6 +34,7 @@ public class AuctionController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<AuctionResponseDTO> update(
             @PathVariable("id") UUID id,
             @Valid @RequestBody UpdateAuctionDTO dto,
@@ -41,6 +44,7 @@ public class AuctionController {
     }
 
     @PostMapping("/{id}/schedule")
+    @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<AuctionResponseDTO> schedule(
             @PathVariable("id") UUID id,
             @Valid @RequestBody ScheduleAuctionDTO dto,
@@ -50,6 +54,7 @@ public class AuctionController {
     }
 
     @PostMapping("/{id}/publish")
+    @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<AuctionResponseDTO> publish(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt
@@ -58,6 +63,7 @@ public class AuctionController {
     }
 
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<AuctionResponseDTO> cancel(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt
@@ -66,6 +72,7 @@ public class AuctionController {
     }
 
     @PostMapping("/{id}/end")
+    @PreAuthorize("hasRole('SELLER')")
     public ApiResponse<AuctionResponseDTO> end(
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt
@@ -78,12 +85,14 @@ public class AuctionController {
             @PathVariable("id") UUID id,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        return auctionService.get(id, jwt.getSubject());
+        String userId = jwt != null ? jwt.getSubject() : null;
+        return auctionService.get(id, userId);
     }
 
     @GetMapping("/active")
     public ApiResponse<List<AuctionResponseDTO>> listActive(@AuthenticationPrincipal Jwt jwt) {
-        return auctionService.listActive(jwt.getSubject());
+        String userId = jwt != null ? jwt.getSubject() : null;
+        return auctionService.listActive(userId);
     }
 
     @GetMapping("/me")
@@ -92,11 +101,13 @@ public class AuctionController {
     }
 
     @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<AuctionResponseDTO>> listAllAdmin() {
         return auctionService.listAll();
     }
 
     @GetMapping("/admin/stats")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<DashboardStatsDTO> getStats() {
         return auctionService.getDashboardStats();
     }

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import com.bidly.common.enums.SellerStatus;
 
 
 @Service
@@ -26,7 +27,7 @@ public class UserService {
         User user = userRepository.findByKeycloakId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        boolean isSeller = user.getSellerStatus() == com.bidly.common.enums.SellerStatus.APPROVED;
+        boolean isSeller = user.getSellerStatus() == SellerStatus.APPROVED;
 
         return ApiResponse.success(isSeller, "User status returned");
     }
@@ -35,15 +36,15 @@ public class UserService {
         User user = userRepository.findByKeycloakId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (user.getSellerStatus() == com.bidly.common.enums.SellerStatus.PENDING) {
+        if (user.getSellerStatus() == SellerStatus.PENDING) {
             throw new IllegalArgumentException("You already have a pending application");
         }
 
-        if (user.getSellerStatus() == com.bidly.common.enums.SellerStatus.APPROVED) {
+        if (user.getSellerStatus() == SellerStatus.APPROVED) {
             throw new IllegalArgumentException("You are already an approved seller");
         }
 
-        user.setSellerStatus(com.bidly.common.enums.SellerStatus.PENDING);
+        user.setSellerStatus(SellerStatus.PENDING);
         userRepository.save(user);
 
         return ApiResponse.success(null, "Seller application submitted successfully");

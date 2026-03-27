@@ -3,6 +3,7 @@ package com.bidly.userservice.service;
 import com.bidly.common.exception.ResourceExistsException;
 import com.bidly.userservice.dto.RegisterUserRequestDTO;
 import jakarta.ws.rs.core.Response;
+import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UsersResource;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 
 @Service
+@Slf4j
 public class KeycloakAdminService {
 
     private final Keycloak keycloak;
@@ -57,7 +59,7 @@ public class KeycloakAdminService {
         return userId;
     }
 
-    private void assignRole(String userId, String roleName) {
+    public void assignRole(String userId, String roleName) {
         try {
             RoleRepresentation role = keycloak.realm(realm)
                     .roles()
@@ -70,8 +72,11 @@ public class KeycloakAdminService {
                     .roles()
                     .realmLevel()
                     .add(Collections.singletonList(role));
+            log.info("Successfully assigned role {} to user {}", roleName, userId);
+        } catch (jakarta.ws.rs.NotFoundException e) {
+            log.error("Role {} not found in Keycloak realm {}. Please create it manually.", roleName, realm);
         } catch (Exception e) {
-            System.err.println("Warning: Could not assign role " + roleName + " to user " + userId + ": " + e.getMessage());
+            log.error("Failed to assign role {} to user {}: {}", roleName, userId, e.getMessage(), e);
         }
     }
 
